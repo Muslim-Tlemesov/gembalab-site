@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#394155" />
+    <title>GEMBALAB — Практика бережливого производства</title>
+    <meta
+      name="description"
+      content="Прибыль там, где нет потерь. Бережливое производство, кайдзен, Lean, TOC, 6 Sigma."
+    />
+    <link rel="icon" type="image/png" href="assets/img/emblem-white.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Roboto:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="assets/style.css" />
+    <link rel="stylesheet" href="assets/index.css" />
+    <link rel="stylesheet" href="Cabinet/cabinet.css" />
+  </head>
+  <body>
+    <header class="header">
+      <div class="container header__row">
+        <a href="index.html"
+          ><img class="header__logo" src="assets/img/logo-color.png" alt="GEMBALAB"
+        /></a>
+        <nav id="mainNav" class="nav">
+          <ul class="nav__list">
+            <li><a href="index.html" class="nav__link nav__link--active">Главная</a></li>
+            <li><a href="about.html" class="nav__link">Кто мы</a></li>
+            <li><a href="audience.html" class="nav__link">Для кого</a></li>
+            <li><a href="values.html" class="nav__link">Ценности</a></li>
+            <li><a href="contacts.html" class="nav__link">Контакты</a></li>
+          </ul>
+        </nav>
+        <div class="header__actions">
+          <button class="burger" id="burgerBtn" aria-label="Меню">
+            <span class="burger__line"></span><span class="burger__line"></span><span class="burger__line"></span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <section class="hero">
+        <div class="container hero__inner">
+          <div class="cabinet">
+            <ul class="cabinet__menu">
+              <li><a class="cabinet__menu-link" href="#" data-panel="profile">Профиль пользователя</a></li>
+              <li><a class="cabinet__menu-link" href="#" data-panel="tests">Список тестов и анкет</a></li>
+              <li><a class="cabinet__menu-link" href="#" data-panel="results">Результаты</a></li>
+              <li><a class="cabinet__menu-link" href="#" data-panel="materials">Учебные материалы</a></li>
+              <li><a class="cabinet__menu-link" href="#" data-panel="payments">Оплаты</a></li>
+              <li><a class="cabinet__menu-link" href="#" data-panel="access">Доступы</a></li>
+              <li><a class="cabinet__menu-link" href="#" data-panel="certificates">Сертификаты</a></li>
+              <li><a class="cabinet__menu-link" href="#" data-panel="stats">Статистика показателей</a></li>
+              <li><a class="cabinet__menu-link" href="#" data-panel="logout">Выход</a></li>
+            </ul>
+
+            <div class="cabinet__content">
+              <div class="cabinet__panel" id="panel-profile">
+                <h2 class="cabinet__panel-title">Профиль пользователя</h2>
+                <div class="cabinet__form-grid">
+                  <label class="cabinet__field">
+                    <span class="cabinet__field-label">ФИО</span>
+                    <input type="text" class="cabinet__input" placeholder="Иванов Иван" />
+                  </label>
+                  <label class="cabinet__field">
+                    <span class="cabinet__field-label">E-mail</span>
+                    <input type="email" class="cabinet__input" placeholder="you@example.com" />
+                  </label>
+                  <label class="cabinet__field">
+                    <span class="cabinet__field-label">Телефон</span>
+                    <input type="tel" class="cabinet__input" placeholder="+7 ___ ___-__-__" />
+                  </label>
+                  <label class="cabinet__field">
+                    <span class="cabinet__field-label">Город</span>
+                    <select class="cabinet__input">
+                      <option>Астрахань</option>
+                      <option>Алматы</option>
+                      <option>Москва</option>
+                      <option>Другой</option>
+                    </select>
+                  </label>
+                  <label class="cabinet__field">
+                    <span class="cabinet__field-label">Наименование компании</span>
+                    <input type="text" class="cabinet__input" placeholder="ООО «Компания»" />
+                  </label>
+                  <label class="cabinet__field">
+                    <span class="cabinet__field-label">БИН</span>
+                    <input type="text" class="cabinet__input" placeholder="000000000000" />
+                  </label>
+                  <label class="cabinet__field">
+                    <span class="cabinet__field-label">Ваша должность</span>
+                    <input type="text" class="cabinet__input" placeholder="Основатель" />
+                  </label>
+                </div>
+
+                <h3 class="cabinet__section-title">Оплаченные запросы</h3>
+                <div class="cabinet__form-row">
+                  <label class="cabinet__field">
+                    <span class="cabinet__field-label">Доступно запросов</span>
+                    <input type="text" class="cabinet__input" value="У вас нет доступа к AI-возможностям" disabled />
+                  </label>
+                  <label class="cabinet__field">
+                    <span class="cabinet__field-label">Приобрести подписку</span>
+                    <select class="cabinet__input">
+                      <option>Ежемесячный пакет</option>
+                      <option>Годовой пакет</option>
+                    </select>
+                  </label>
+                  <button type="button" class="btn btn--primary cabinet__pay-btn">Оплатить</button>
+                </div>
+
+                <h3 class="cabinet__section-title">Активация продукта по промо-коду</h3>
+                <div class="cabinet__form-row">
+                  <input type="text" class="cabinet__input cabinet__promo-input" placeholder="Промо-код" />
+                  <button type="button" class="btn btn--outline">Активировать</button>
+                </div>
+              </div>
+
+              <div class="cabinet__panel" id="panel-tests">
+                <h2 class="cabinet__panel-title">Список тестов и анкет</h2>
+                <div class="cabinet__tests-list" id="testsListView">
+                <p class="cabinet__tests-intro">
+                  Полный перечень тестов, анкет и инструментов личного кабинета. Часть материалов
+                  открывается по платной подписке или промо-коду.
+                </p>
+                <div class="cabinet__tests-grid">
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">1.</span>Ситуативный тест</div>
+                    </div>
+                    <p class="cabinet__test-desc">Покажет, какие качества чаще проявляются в реальных ситуациях</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">2.</span>Тест удовлетворённости работой Герцберга</div>
+                    </div>
+                    <p class="cabinet__test-desc">Покажет потребности, которые вызывают интерес или раздражение к работе</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">3.</span>Изучение мотивационного профиля личности (Ш. Ричи и П. Мартин)</div>
+                    </div>
+                    <p class="cabinet__test-desc">Покажет мотивы, которые больше всего зажигают в жизни и в работе</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">4.</span>Тест Шейна «Якоря карьеры»</div>
+                    </div>
+                    <p class="cabinet__test-desc">Покажет, какая работа больше подходит</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">5.</span>Кайдзен (Экспресс)</div>
+                    </div>
+                    <p class="cabinet__test-desc">Экспресс-диагностика по методологии кайдзен</p>
+                  </div>
+                  <div class="cabinet__test-card cabinet__test-card--clickable" data-quiz="maslow" role="button" tabindex="0">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">6.</span>Тест Маслоу</div>
+                    </div>
+                    <p class="cabinet__test-desc">Покажет, что сейчас реально нужно и что мотивирует</p>
+                    <span class="cabinet__test-cta">Пройти тест →</span>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">7.</span>Расчёт индекса вовлечённости</div>
+                    </div>
+                    <p class="cabinet__test-desc">Измерит вовлечённость и выдаст детальный план мероприятий</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">8.</span>Формирование плана по вовлечённости</div>
+                    </div>
+                    <p class="cabinet__test-desc">Формирует детальный кайдзен-план по повышению вовлечённости команды</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">9.</span>Диагностика по 5С</div>
+                    </div>
+                    <p class="cabinet__test-desc">Измерит, насколько эффективно организовано пространство, и выдаст план действий</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">10.</span>Тест Герчикова</div>
+                    </div>
+                    <p class="cabinet__test-desc">Покажет, что мотивирует в работе</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">11.</span>Тест (опросник) Р. М. Белбина</div>
+                    </div>
+                    <p class="cabinet__test-desc">Покажет, какую роль играешь в команде и чем будешь полезен</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">12.</span>DISC</div>
+                    </div>
+                    <p class="cabinet__test-desc">Покажет стиль поведения и общения</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">13.</span>ОЭО</div>
+                    </div>
+                    <p class="cabinet__test-desc">Измерит эффективность оборудования</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">14.</span>Аудит развития компании</div>
+                    </div>
+                    <p class="cabinet__test-desc">Покажет, насколько развита компания, и выдаст план мероприятий по улучшениям</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">15.</span>Паспорт проекта</div>
+                      <span class="cabinet__test-badge">Подписка / промо-код</span>
+                    </div>
+                    <p class="cabinet__test-desc">Чёткое, единое понимание и договорённость между участниками проекта</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">16.</span>A3 Отчёт о решении проблем</div>
+                      <span class="cabinet__test-badge">Подписка</span>
+                    </div>
+                    <p class="cabinet__test-desc">Решение любой сложной проблемы</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">17.</span>Отзыв</div>
+                    </div>
+                    <p class="cabinet__test-desc">Обратная связь по пройденному мероприятию</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">18.</span>Предложения</div>
+                    </div>
+                    <p class="cabinet__test-desc">Проблемы и идеи компании</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">19.</span>Хосин Канри</div>
+                    </div>
+                    <p class="cabinet__test-desc">Стратегия, которая включает миссию, видение, ценности, цели, тактический план действий</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">20.</span>Дом качества</div>
+                      <span class="cabinet__test-badge">Подписка / промо-код</span>
+                    </div>
+                    <p class="cabinet__test-desc">Покажет, как измерить качество любого продукта или услуги, и выдаст детальный план действий</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">21.</span>Картирование процесса</div>
+                      <span class="cabinet__test-badge">Подписка / промо-код</span>
+                    </div>
+                    <p class="cabinet__test-desc">Визуализация любого процесса с выдачей детального плана по улучшениям</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">22.</span>Расчёт экономического эффекта</div>
+                    </div>
+                    <p class="cabinet__test-desc">Оценка экономического эффекта от внедрённых улучшений</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">23.</span>Расчёт ABCXYZ</div>
+                    </div>
+                    <p class="cabinet__test-desc">Рассчитайте, где зарабатываете и теряете деньги на запасах</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">24.</span>Управление навыками (TWI)</div>
+                      <span class="cabinet__test-badge">Подписка / промо-код</span>
+                    </div>
+                    <p class="cabinet__test-desc">Построить матрицу компетенций, сформировать рабочую инструкцию для критичных операций в компании</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">25.</span>5 почему</div>
+                    </div>
+                    <p class="cabinet__test-desc">Выявление корневых причин с помощью «5 почему» и генерация решений</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">26.</span>План коммуникаций</div>
+                      <span class="cabinet__test-badge">Подписка / промо-код</span>
+                    </div>
+                    <p class="cabinet__test-desc">Создать эффективный способ обмена информацией в компании</p>
+                  </div>
+                  <div class="cabinet__test-card">
+                    <div class="cabinet__test-head">
+                      <div class="cabinet__test-title"><span class="cabinet__test-num">27.</span>Результаты сопровождения клиента</div>
+                    </div>
+                    <p class="cabinet__test-desc">Итоги сопровождения клиента по проекту</p>
+                  </div>
+                </div>
+                </div>
+
+                <div class="cabinet__quiz" id="quizMaslow">
+                  <button type="button" class="cabinet__quiz-back" id="quizMaslowBack">← Список тестов</button>
+                  <h3 class="cabinet__quiz-title">Тест Маслоу</h3>
+
+                  <div class="cabinet__quiz-progress" id="quizMaslowProgress"></div>
+
+                  <div class="cabinet__quiz-body" id="quizMaslowBody">
+                    <p class="cabinet__quiz-question-text" id="quizMaslowQuestionText"></p>
+                    <div class="cabinet__quiz-options" id="quizMaslowOptions"></div>
+                  </div>
+
+                  <div class="cabinet__quiz-nav">
+                    <button type="button" class="btn btn--outline" id="quizMaslowPrev">Назад</button>
+                    <button type="button" class="btn btn--primary" id="quizMaslowNext">Далее</button>
+                  </div>
+
+                  <div class="cabinet__quiz-done" id="quizMaslowDone">
+                    <h3 class="cabinet__quiz-title">Результаты теста Маслоу</h3>
+
+                    <div class="cabinet__result-ai">
+                      <button type="button" class="btn btn--primary" id="quizMaslowAiBtn">Сформировать отчёт</button>
+                      <span class="cabinet__result-ai-status" id="quizMaslowAiStatus"></span>
+                    </div>
+
+                    <div class="cabinet__result-chart" id="quizMaslowChart"></div>
+
+                    <h4 class="cabinet__section-title">Расшифровка результатов</h4>
+                    <ul class="cabinet__result-scores" id="quizMaslowScores"></ul>
+
+                    <div class="cabinet__result-breakdown" id="quizMaslowBreakdown"></div>
+
+                    <h4 class="cabinet__section-title">Рекомендации</h4>
+                    <div class="cabinet__result-recommend" id="quizMaslowRecommend"></div>
+
+                    <h4 class="cabinet__section-title">Что удовлетворяет эти потребности на работе</h4>
+                    <div class="cabinet__result-appendix" id="quizMaslowAppendix"></div>
+
+                    <p class="cabinet__placeholder cabinet__result-note">
+                      Результаты пока не сохраняются — история прохождений и PDF-отчёт появятся вместе
+                      с запуском платной регистрации в личном кабинете.
+                    </p>
+                    <button type="button" class="btn btn--outline" id="quizMaslowRestart">Пройти заново</button>
+                  </div>
+                </div>
+              </div>
+              <div class="cabinet__panel" id="panel-results">
+                <h2 class="cabinet__panel-title">Результаты</h2>
+                <p class="cabinet__placeholder">Раздел в разработке — содержимое появится позже.</p>
+              </div>
+              <div class="cabinet__panel" id="panel-materials">
+                <h2 class="cabinet__panel-title">Учебные материалы</h2>
+                <p class="cabinet__placeholder">Раздел в разработке — содержимое появится позже.</p>
+              </div>
+              <div class="cabinet__panel" id="panel-payments">
+                <h2 class="cabinet__panel-title">Оплаты</h2>
+                <p class="cabinet__placeholder">Раздел в разработке — содержимое появится позже.</p>
+              </div>
+              <div class="cabinet__panel" id="panel-access">
+                <h2 class="cabinet__panel-title">Доступы</h2>
+                <p class="cabinet__placeholder">Раздел в разработке — содержимое появится позже.</p>
+              </div>
+              <div class="cabinet__panel" id="panel-certificates">
+                <h2 class="cabinet__panel-title">Сертификаты</h2>
+                <p class="cabinet__placeholder">Раздел в разработке — содержимое появится позже.</p>
+              </div>
+              <div class="cabinet__panel" id="panel-stats">
+                <h2 class="cabinet__panel-title">Статистика показателей</h2>
+                <p class="cabinet__placeholder">Раздел в разработке — содержимое появится позже.</p>
+              </div>
+              <div class="cabinet__panel" id="panel-logout">
+                <h2 class="cabinet__panel-title">Выход</h2>
+                <p class="cabinet__placeholder">Выход из личного кабинета появится вместе с регистрацией.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+    </section>
+
+    <section></section>
+
+    <section class="cta">
+      <div class="container cta__inner">
+        <div>
+          <h2 class="cta__title">Готовы разобраться с потерями?</h2>
+          <p class="cta__text">
+            Расскажите, какая у вас сейчас проблема, какой запрос — и мы
+            свяжемся с вами.
+          </p>
+        </div>
+        <a class="btn btn--primary" href="contacts.html">Оставить заявку</a>
+      </div>
+    </section>
+    <footer class="footer">
+      <div class="container">
+        <div class="footer__grid">
+          <div>
+            <h4 class="footer__title">Контакты</h4>
+            <ul class="footer__list">
+              <li class="footer__list-item">+7 939 500-00-30</li>
+              <li class="footer__list-item">gemba.lab@mail.ru</li>
+              <li class="footer__list-item">instagram.com/gemba_lab</li>
+              <li class="footer__list-item">Астрахань · вся Россия</li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer__bottom">
+          <span>© 2026 GEMBALAB · Арстан Шакенов, Мурадкали Берниязов</span>
+          <div>
+            <img
+              class="footer__logo"
+              src="assets/img/logo-white.png"
+              alt="GEMBALAB"
+            />
+          </div>
+          <span class="footer__text">Бережливое производство · Кайдзен · Lean · TOC · 6 Sigma</span>
+        </div>
+      </div>
+    </footer>
+    <script src="assets/main.js"></script>
+    <script src="Cabinet/cabinet.js"></script>
+    <script src="Cabinet/quiz-maslow.js"></script>
+  </body>
+</html>
