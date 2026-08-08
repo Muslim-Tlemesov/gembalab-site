@@ -508,6 +508,32 @@
   margin-top: 8px;
 }
 
+/* Раздел "Результаты" — сохранённый результат теста (localStorage) */
+.cabinet__result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.cabinet__result-header-title {
+  font-family: "Oswald", "Roboto", sans-serif;
+  font-size: 17px;
+  color: var(--graphite);
+}
+.cabinet__result-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.cabinet__result-saved-at {
+  font-size: 12px;
+}
+
 @media (max-width: 900px) {
   .cabinet {
     flex-direction: column;

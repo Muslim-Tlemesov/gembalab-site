@@ -11,8 +11,13 @@
 // отдельную серверную функцию — см. папку /cloudflare-worker, там же
 // инструкция по бесплатному деплою (карта не нужна). Пока адрес функции
 // не указан ниже — кнопка сразу сообщает об этом и ничего никуда не
-// отправляет. Ничего не сохраняется — это визуальный прототип, как и
-// остальной кабинет.
+// отправляет.
+//
+// Результат теста (баллы + текст ИИ, если он был сформирован) сохраняется
+// в localStorage этого браузера и появляется в разделе "Результаты" личного
+// кабинета. Никакого сервера/аккаунта для этого нет — если открыть сайт
+// в другом браузере или на другом устройстве, результата там не будет.
+// Остальной кабинет (профиль, оплаты и т.д.) по-прежнему просто витрина.
 
 // Вставь сюда адрес своего Cloudflare Worker после деплоя (см. README в
 // /cloudflare-worker), например:
@@ -168,6 +173,208 @@ function maslowTierLabel(tier) {
   return "низкая";
 }
 
+// Сохранение результата теста — прямо в этом браузере (localStorage), без
+// регистрации и без сервера. Поэтому результат виден только на этом
+// устройстве и пропадёт при очистке данных браузера.
+const MASLOW_STORAGE_KEY = "gembalab_maslow_result_v1";
+
+function saveMaslowResult(scores, aiData) {
+  try {
+    localStorage.setItem(
+      MASLOW_STORAGE_KEY,
+      JSON.stringify({ scores: scores, ai: aiData || null, savedAt: Date.now() })
+    );
+  } catch (e) {
+    // localStorage недоступен (приватный режим и т.п.) — просто не сохраняем.
+  }
+}
+
+function loadMaslowResult() {
+  try {
+    const raw = localStorage.getItem(MASLOW_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function clearMaslowResult() {
+  try {
+    localStorage.removeItem(MASLOW_STORAGE_KEY);
+  } catch (e) {}
+}
+
+// Общая отрисовка отчёта (график + расшифровка + рекомендации + приложение).
+// Используется и на экране результатов внутри самого теста, и в разделе
+// "Результаты" личного кабинета — оба раза строит одинаковую разметку в
+// переданные контейнеры. Если передан aiData — используется персональный
+// текст ИИ вместо шаблонного.
+function renderMaslowReport(els, totals, aiData) {
+  const results = MASLOW_CATEGORIES.map((c) => ({
+    ...c,
+    score: totals[c.key],
+    tier: maslowTier(totals[c.key]),
+  }));
+
+  // график
+  els.chartEl.innerHTML = "";
+  results.forEach((r) => {
+    const col = document.createElement("div");
+    col.className = "cabinet__result-bar-col";
+
+    const bar = document.createElement("div");
+    bar.className = "cabinet__result-bar" + (r.tier === "high" ? " cabinet__result-bar--high" : "");
+    const pct = Math.max(6, Math.round((r.score / MASLOW_MAX_PER_CATEGORY) * 100));
+    bar.style.height = pct + "%";
+    bar.textContent = r.score;
+
+    const label = document.createElement("div");
+    label.className = "cabinet__result-bar-label";
+    label.textContent = r.label;
+
+    col.appendChild(bar);
+    col.appendChild(label);
+    els.chartEl.appendChild(col);
+  });
+
+  // баллы
+  els.scoresEl.innerHTML = "";
+  results.forEach((r) => {
+    const li = document.createElement("li");
+    const tierSpan =
+      '<span class="cabinet__result-tier' +
+      (r.tier === "high" ? " cabinet__result-tier--high" : "") +
+      '">' + maslowTierLabel(r.tier) + "</span>";
+    li.innerHTML = "<span>" + r.label + "</span><span>" + r.score + " баллов · " + tierSpan + "</span>";
+    els.scoresEl.appendChild(li);
+  });
+
+  // расшифровка (текст ИИ, если есть, иначе шаблон)
+  els.breakdownEl.innerHTML = "";
+  results.forEach((r) => {
+    const aiText = aiData && aiData.breakdown && aiData.breakdown[r.key];
+    const item = document.createElement("div");
+    item.className = "cabinet__result-item" + (aiText ? " cabinet__result-item--ai" : "");
+    item.dataset.cat = r.key;
+    const title = document.createElement("div");
+    title.className = "cabinet__result-item-title";
+    title.textContent = r.label + " (" + r.score + ")";
+    const text = document.createElement("p");
+    text.className = "cabinet__result-item-text";
+    text.textContent = aiText || MASLOW_EXPLANATIONS[r.key][r.tier];
+    item.appendChild(title);
+    item.appendChild(text);
+    els.breakdownEl.appendChild(item);
+  });
+
+  // рекомендации — начиная с самых слабых потребностей
+  const weak = results.filter((r) => r.tier !== "high").sort((a, b) => a.score - b.score);
+  const strong = results.filter((r) => r.tier === "high");
+  els.recommendEl.innerHTML = "";
+
+  const intro = document.createElement("p");
+  if (els.introId) intro.id = els.introId;
+  intro.className = "cabinet__result-item-text";
+  intro.style.marginBottom = "18px";
+  if (aiData && aiData.recommendations_intro) {
+    intro.textContent = aiData.recommendations_intro;
+  } else if (weak.length === 0) {
+    intro.textContent = "Все четыре потребности закрыты примерно одинаково хорошо — держите этот баланс и дальше.";
+  } else if (strong.length === 0) {
+    intro.textContent = "Ярко выраженного «сильного» полюса нет — стоит равномерно подтянуть все направления ниже.";
+  } else {
+    intro.textContent =
+      "Главное — сохранить вашу сильную базу (" +
+      strong.map((r) => r.label.replace("Потребность в ", "").replace("Потребность ", "")).join(", ") +
+      "), при этом аккуратно поднимать: " +
+      weak.map((r) => r.label.replace("Потребность в ", "").replace("Потребность ", "")).join(", ") +
+      ".";
+  }
+  els.recommendEl.appendChild(intro);
+
+  weak.forEach((r) => {
+    const group = document.createElement("div");
+    group.className = "cabinet__result-recommend-group";
+    const title = document.createElement("div");
+    title.className = "cabinet__result-recommend-title";
+    title.textContent = r.label;
+    const ul = document.createElement("ul");
+    MASLOW_TIPS[r.key].forEach((tip) => {
+      const li = document.createElement("li");
+      li.textContent = tip;
+      ul.appendChild(li);
+    });
+    group.appendChild(title);
+    group.appendChild(ul);
+    els.recommendEl.appendChild(group);
+  });
+
+  // приложение — статичный список факторов по каждой потребности
+  els.appendixEl.innerHTML = "";
+  MASLOW_CATEGORIES.forEach((c) => {
+    const details = document.createElement("details");
+    const summary = document.createElement("summary");
+    summary.textContent = c.label;
+    const ul = document.createElement("ul");
+    MASLOW_APPENDIX[c.key].forEach((item) => {
+      const li = document.createElement("li");
+      li.textContent = item;
+      ul.appendChild(li);
+    });
+    details.appendChild(summary);
+    details.appendChild(ul);
+    els.appendixEl.appendChild(details);
+  });
+
+  return results;
+}
+
+// Раздел "Результаты" личного кабинета — читает сохранённый результат из
+// localStorage и рисует его тем же способом, что и экран результатов теста.
+(function () {
+  const emptyEl = document.getElementById("maslowResultsEmpty");
+  const filledEl = document.getElementById("maslowResultsFilled");
+  if (!emptyEl || !filledEl) return;
+
+  const dateEl = document.getElementById("maslowResultsDate");
+  const clearBtn = document.getElementById("maslowResultsClear");
+  const resultsEls = {
+    chartEl: document.getElementById("maslowResultsChart"),
+    scoresEl: document.getElementById("maslowResultsScores"),
+    breakdownEl: document.getElementById("maslowResultsBreakdown"),
+    recommendEl: document.getElementById("maslowResultsRecommend"),
+    appendixEl: document.getElementById("maslowResultsAppendix"),
+  };
+
+  window.refreshMaslowResultsPanel = function () {
+    const saved = loadMaslowResult();
+    if (!saved || !saved.scores) {
+      emptyEl.style.display = "";
+      filledEl.style.display = "none";
+      return;
+    }
+    emptyEl.style.display = "none";
+    filledEl.style.display = "";
+    renderMaslowReport(resultsEls, saved.scores, saved.ai);
+    if (dateEl) {
+      const d = saved.savedAt ? new Date(saved.savedAt) : null;
+      dateEl.textContent = d
+        ? "Сохранено: " + d.toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" })
+        : "";
+    }
+  };
+
+  if (clearBtn) {
+    clearBtn.addEventListener("click", function () {
+      if (!window.confirm("Удалить сохранённый результат теста Маслоу?")) return;
+      clearMaslowResult();
+      window.refreshMaslowResultsPanel();
+    });
+  }
+
+  window.refreshMaslowResultsPanel();
+})();
+
 (function () {
   const listView = document.getElementById("testsListView");
   const quiz = document.getElementById("quizMaslow");
@@ -269,118 +476,17 @@ function maslowTierLabel(tier) {
     aiBtn.disabled = false;
     aiBtn.textContent = "Сформировать отчёт";
 
-    const results = MASLOW_CATEGORIES.map((c) => ({
-      ...c,
-      score: totals[c.key],
-      tier: maslowTier(totals[c.key]),
-    }));
+    renderMaslowReport(
+      { chartEl, scoresEl, breakdownEl, recommendEl, appendixEl, introId: "quizMaslowRecommendIntro" },
+      totals,
+      null
+    );
 
-    // график
-    chartEl.innerHTML = "";
-    results.forEach((r) => {
-      const col = document.createElement("div");
-      col.className = "cabinet__result-bar-col";
-
-      const bar = document.createElement("div");
-      bar.className = "cabinet__result-bar" + (r.tier === "high" ? " cabinet__result-bar--high" : "");
-      const pct = Math.max(6, Math.round((r.score / MASLOW_MAX_PER_CATEGORY) * 100));
-      bar.style.height = pct + "%";
-      bar.textContent = r.score;
-
-      const label = document.createElement("div");
-      label.className = "cabinet__result-bar-label";
-      label.textContent = r.label;
-
-      col.appendChild(bar);
-      col.appendChild(label);
-      chartEl.appendChild(col);
-    });
-
-    // баллы
-    scoresEl.innerHTML = "";
-    results.forEach((r) => {
-      const li = document.createElement("li");
-      const tierSpan =
-        '<span class="cabinet__result-tier' +
-        (r.tier === "high" ? " cabinet__result-tier--high" : "") +
-        '">' + maslowTierLabel(r.tier) + "</span>";
-      li.innerHTML = "<span>" + r.label + "</span><span>" + r.score + " баллов · " + tierSpan + "</span>";
-      scoresEl.appendChild(li);
-    });
-
-    // расшифровка
-    breakdownEl.innerHTML = "";
-    results.forEach((r) => {
-      const item = document.createElement("div");
-      item.className = "cabinet__result-item";
-      item.dataset.cat = r.key;
-      const title = document.createElement("div");
-      title.className = "cabinet__result-item-title";
-      title.textContent = r.label + " (" + r.score + ")";
-      const text = document.createElement("p");
-      text.className = "cabinet__result-item-text";
-      text.textContent = MASLOW_EXPLANATIONS[r.key][r.tier];
-      item.appendChild(title);
-      item.appendChild(text);
-      breakdownEl.appendChild(item);
-    });
-
-    // рекомендации — начиная с самых слабых потребностей
-    const weak = results.filter((r) => r.tier !== "high").sort((a, b) => a.score - b.score);
-    const strong = results.filter((r) => r.tier === "high");
-    recommendEl.innerHTML = "";
-
-    const intro = document.createElement("p");
-    intro.id = "quizMaslowRecommendIntro";
-    intro.className = "cabinet__result-item-text";
-    intro.style.marginBottom = "18px";
-    if (weak.length === 0) {
-      intro.textContent = "Все четыре потребности закрыты примерно одинаково хорошо — держите этот баланс и дальше.";
-    } else if (strong.length === 0) {
-      intro.textContent = "Ярко выраженного «сильного» полюса нет — стоит равномерно подтянуть все направления ниже.";
-    } else {
-      intro.textContent =
-        "Главное — сохранить вашу сильную базу (" +
-        strong.map((r) => r.label.replace("Потребность в ", "").replace("Потребность ", "")).join(", ") +
-        "), при этом аккуратно поднимать: " +
-        weak.map((r) => r.label.replace("Потребность в ", "").replace("Потребность ", "")).join(", ") +
-        ".";
-    }
-    recommendEl.appendChild(intro);
-
-    weak.forEach((r) => {
-      const group = document.createElement("div");
-      group.className = "cabinet__result-recommend-group";
-      const title = document.createElement("div");
-      title.className = "cabinet__result-recommend-title";
-      title.textContent = r.label;
-      const ul = document.createElement("ul");
-      MASLOW_TIPS[r.key].forEach((tip) => {
-        const li = document.createElement("li");
-        li.textContent = tip;
-        ul.appendChild(li);
-      });
-      group.appendChild(title);
-      group.appendChild(ul);
-      recommendEl.appendChild(group);
-    });
-
-    // приложение — статичный список факторов по каждой потребности
-    appendixEl.innerHTML = "";
-    MASLOW_CATEGORIES.forEach((c) => {
-      const details = document.createElement("details");
-      const summary = document.createElement("summary");
-      summary.textContent = c.label;
-      const ul = document.createElement("ul");
-      MASLOW_APPENDIX[c.key].forEach((item) => {
-        const li = document.createElement("li");
-        li.textContent = item;
-        ul.appendChild(li);
-      });
-      details.appendChild(summary);
-      details.appendChild(ul);
-      appendixEl.appendChild(details);
-    });
+    // Сохраняем результат в этом браузере — без ИИ-текста (он ещё не
+    // запрошен). Если раньше уже был сохранён отчёт с текстом ИИ — он
+    // затирается, так как ответы могли измениться при повторном прохождении.
+    saveMaslowResult(totals, null);
+    if (window.refreshMaslowResultsPanel) window.refreshMaslowResultsPanel();
   }
 
   function showDone() {
@@ -416,20 +522,14 @@ function maslowTierLabel(tier) {
       const data = await resp.json();
       if (!data || !data.breakdown) throw new Error("Пустой ответ");
 
-      MASLOW_CATEGORIES.forEach((c) => {
-        const aiText = data.breakdown[c.key];
-        if (!aiText) return;
-        const item = breakdownEl.querySelector('[data-cat="' + c.key + '"]');
-        if (!item) return;
-        item.classList.add("cabinet__result-item--ai");
-        const p = item.querySelector(".cabinet__result-item-text");
-        if (p) p.textContent = aiText;
-      });
+      renderMaslowReport(
+        { chartEl, scoresEl, breakdownEl, recommendEl, appendixEl, introId: "quizMaslowRecommendIntro" },
+        lastScores,
+        data
+      );
 
-      if (data.recommendations_intro) {
-        const introEl = document.getElementById("quizMaslowRecommendIntro");
-        if (introEl) introEl.textContent = data.recommendations_intro;
-      }
+      saveMaslowResult(lastScores, data);
+      if (window.refreshMaslowResultsPanel) window.refreshMaslowResultsPanel();
 
       aiBtn.textContent = "Отчёт сформирован";
       aiStatusEl.textContent = "Готово — тексты выше персонализированы ИИ.";
@@ -460,8 +560,9 @@ function maslowTierLabel(tier) {
       "transitionend",
       function hide(event) {
         if (event.propertyName !== "opacity") return;
-        quiz.classList.remove("cabinet__quiz--visible");
         quiz.removeEventListener("transitionend", hide);
+        if (quiz.classList.contains("cabinet__quiz--active")) return;
+        quiz.classList.remove("cabinet__quiz--visible");
       }
     );
     listView.style.display = "";

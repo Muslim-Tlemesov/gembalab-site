@@ -12,8 +12,12 @@ function hidePanel(panel) {
     "transitionend",
     function hide(event) {
       if (event.propertyName !== "opacity") return;
-      panel.classList.remove("cabinet__panel--visible");
       panel.removeEventListener("transitionend", hide);
+      // Если пользователь успел снова открыть эту панель до того, как
+      // доиграла анимация скрытия — не прячем её (иначе панель останется
+      // невидимой, хотя должна быть открыта).
+      if (panel.classList.contains("cabinet__panel--active")) return;
+      panel.classList.remove("cabinet__panel--visible");
     }
   );
 }

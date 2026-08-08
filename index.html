@@ -338,8 +338,9 @@
                     <div class="cabinet__result-appendix" id="quizMaslowAppendix"></div>
 
                     <p class="cabinet__placeholder cabinet__result-note">
-                      Результаты пока не сохраняются — история прохождений и PDF-отчёт появятся вместе
-                      с запуском платной регистрации в личном кабинете.
+                      Результат сохранён в этом браузере и виден в разделе «Результаты» слева. Скачивание
+                      PDF-отчёта и история прохождений с разных устройств появятся вместе с полноценной
+                      регистрацией в личном кабинете.
                     </p>
                     <button type="button" class="btn btn--outline" id="quizMaslowRestart">Пройти заново</button>
                   </div>
@@ -347,7 +348,31 @@
               </div>
               <div class="cabinet__panel" id="panel-results">
                 <h2 class="cabinet__panel-title">Результаты</h2>
-                <p class="cabinet__placeholder">Раздел в разработке — содержимое появится позже.</p>
+                <p class="cabinet__placeholder" id="maslowResultsEmpty">
+                  Здесь появятся результаты пройденных тестов — сохраняются прямо в этом браузере,
+                  без регистрации. Пройдите, например, «Тест Маслоу» в разделе «Список тестов и анкет».
+                </p>
+                <div id="maslowResultsFilled" style="display:none;">
+                  <div class="cabinet__result-header">
+                    <h3 class="cabinet__result-header-title">Тест Маслоу</h3>
+                    <div class="cabinet__result-header-actions">
+                      <span class="cabinet__placeholder cabinet__result-saved-at" id="maslowResultsDate"></span>
+                      <button type="button" class="btn btn--outline" id="maslowResultsClear">Удалить результат</button>
+                    </div>
+                  </div>
+                  <div class="cabinet__result-chart" id="maslowResultsChart"></div>
+                  <h4 class="cabinet__section-title">Расшифровка результатов</h4>
+                  <ul class="cabinet__result-scores" id="maslowResultsScores"></ul>
+                  <div class="cabinet__result-breakdown" id="maslowResultsBreakdown"></div>
+                  <h4 class="cabinet__section-title">Рекомендации</h4>
+                  <div class="cabinet__result-recommend" id="maslowResultsRecommend"></div>
+                  <h4 class="cabinet__section-title">Что удовлетворяет эти потребности на работе</h4>
+                  <div class="cabinet__result-appendix" id="maslowResultsAppendix"></div>
+                  <p class="cabinet__placeholder cabinet__result-note">
+                    Результат виден только в этом браузере на этом устройстве. Если очистить историю
+                    браузера или открыть сайт с другого устройства — результат нужно будет получить заново.
+                  </p>
+                </div>
               </div>
               <div class="cabinet__panel" id="panel-materials">
                 <h2 class="cabinet__panel-title">Учебные материалы</h2>
