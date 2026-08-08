@@ -163,6 +163,33 @@
     color: var(--text-muted);
     margin-bottom: 16px;
   }
+
+  /* Печать / "Сохранить как PDF" — скрываем всё лишнее (форма входа, кнопки,
+     статус), карточки с подробностями показываем всегда, независимо от того,
+     были ли они развёрнуты на экране. */
+  @media print {
+    .admin-gate,
+    .admin-toolbar-actions,
+    .admin-actions,
+    #adminStatus {
+      display: none !important;
+    }
+    .admin-detail {
+      display: block !important;
+      background: #fff;
+    }
+    .admin-detail-row {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .admin-table {
+      min-width: 0;
+    }
+    .admin-table th,
+    .admin-table td {
+      white-space: normal;
+    }
+  }
 </style>
 </head>
 <body>
@@ -184,7 +211,7 @@
       <h1>Результаты сотрудников — Тест Маслоу</h1>
       <div class="admin-toolbar-actions">
         <button type="button" class="btn btn--outline" id="adminRefreshBtn">Обновить</button>
-        <button type="button" class="btn btn--outline" id="adminCsvBtn">Скачать CSV</button>
+        <button type="button" class="btn btn--outline" id="adminPdfBtn">Скачать PDF</button>
       </div>
     </div>
     <p class="cabinet__placeholder" id="adminStatus"></p>
@@ -225,7 +252,7 @@
   var statusEl = document.getElementById("adminStatus");
   var tableBodyEl = document.getElementById("adminTableBody");
   var refreshBtn = document.getElementById("adminRefreshBtn");
-  var csvBtn = document.getElementById("adminCsvBtn");
+  var pdfBtn = document.getElementById("adminPdfBtn");
 
   var currentPassword = null; // хранится только в памяти вкладки, никуда не сохраняется
   var currentRows = [];
@@ -459,34 +486,17 @@
     if (currentPassword) loadResults(currentPassword);
   });
 
-  csvBtn.addEventListener("click", function () {
+  pdfBtn.addEventListener("click", function () {
     if (!currentRows.length) return;
-    var header = ["ФИО", "Отдел/должность", "Дата", "Безопасность", "Принадлежность", "Уважение", "Самореализация"];
-    var lines = [header.join(";")];
-    currentRows.forEach(function (r) {
-      lines.push(
-        [
-          r.full_name,
-          r.department || "",
-          formatDate(r.submitted_at),
-          r.safety,
-          r.belonging,
-          r.esteem,
-          r.selfact,
-        ]
-          .map(function (v) { return '"' + String(v).replace(/"/g, '""') + '"'; })
-          .join(";")
-      );
+    // Раскрываем все карточки "Подробнее", чтобы в PDF попали полные данные
+    // по каждому сотруднику, а не только сводная таблица.
+    var toOpen = tableBodyEl.querySelectorAll(".admin-detail-btn");
+    toOpen.forEach(function (btn) {
+      if (btn.textContent === "Подробнее") btn.click();
     });
-    var blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement("a");
-    a.href = url;
-    a.download = "maslow-results.csv";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    window.setTimeout(function () {
+      window.print();
+    }, 50);
   });
 })();
 </script>
