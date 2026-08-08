@@ -235,6 +235,26 @@
   margin-bottom: 20px;
 }
 
+.cabinet__quiz-start {
+  max-width: 560px;
+  margin-bottom: 8px;
+}
+.cabinet__quiz-start .cabinet__placeholder {
+  margin-bottom: 18px;
+}
+.cabinet__quiz-start-btn {
+  margin-top: 20px;
+}
+
+.cabinet__result-submit-status {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: -10px 0 22px;
+}
+.cabinet__result-submit-status--error {
+  color: var(--red);
+}
+
 .cabinet__quiz-progress {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));

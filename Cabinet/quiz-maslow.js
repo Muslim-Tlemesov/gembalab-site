@@ -398,10 +398,18 @@ function renderMaslowReport(els, totals, aiData) {
   const appendixEl = document.getElementById("quizMaslowAppendix");
   const aiBtn = document.getElementById("quizMaslowAiBtn");
   const aiStatusEl = document.getElementById("quizMaslowAiStatus");
+  const submitStatusEl = document.getElementById("quizMaslowSubmitStatus");
+
+  const startEl = document.getElementById("quizMaslowStart");
+  const nameInput = document.getElementById("quizMaslowName");
+  const deptInput = document.getElementById("quizMaslowDept");
+  const startErrorEl = document.getElementById("quizMaslowStartError");
 
   const answers = new Array(MASLOW_QUESTIONS.length).fill(null);
   let current = 0;
   let lastScores = null; // баллы последнего пройденного теста — нужны кнопке "Сформировать отчёт"
+  let employeeName = ""; // ФИО, введённое перед началом теста — для общей базы результатов
+  let employeeDept = ""; // отдел/должность, введённые перед началом теста
 
   function renderProgress() {
     progressEl.innerHTML = "";
@@ -416,6 +424,8 @@ function renderMaslowReport(els, totals, aiData) {
   }
 
   function renderQuestion() {
+    startEl.style.display = "none";
+    progressEl.style.display = "";
     bodyEl.style.display = "";
     navEl.style.display = "";
     doneEl.classList.remove("cabinet__quiz-done--visible");
@@ -494,6 +504,38 @@ function renderMaslowReport(els, totals, aiData) {
     navEl.style.display = "none";
     renderResults();
     doneEl.classList.add("cabinet__quiz-done--visible");
+    submitResultToServer(lastScores);
+  }
+
+  // Отправляет результат (ФИО, отдел/должность, баллы) в общую базу на
+  // сервере — чтобы результат было видно в админке, а не только в этом
+  // браузере. Работает "по-тихому" в фоне; если сервер ещё не настроен
+  // (см. README.md) или недоступен — результат всё равно остаётся
+  // сохранённым локально (см. saveMaslowResult выше), сотрудник ничего
+  // не теряет.
+  async function submitResultToServer(totals) {
+    if (!submitStatusEl) return;
+    submitStatusEl.classList.remove("cabinet__result-submit-status--error");
+
+    if (!MASLOW_AI_WORKER_URL || !employeeName) {
+      submitStatusEl.textContent = "";
+      return;
+    }
+
+    submitStatusEl.textContent = "Отправляем результат ответственному лицу…";
+    try {
+      const resp = await fetch(MASLOW_AI_WORKER_URL + "/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: employeeName, department: employeeDept, scores: totals }),
+      });
+      if (!resp.ok) throw new Error("HTTP " + resp.status);
+      submitStatusEl.textContent = "Результат отправлен ответственному лицу.";
+    } catch (err) {
+      submitStatusEl.classList.add("cabinet__result-submit-status--error");
+      submitStatusEl.textContent =
+        "Не удалось отправить результат в общую базу — но он сохранён в этом браузере.";
+    }
   }
 
   async function requestAiReport() {
@@ -542,8 +584,21 @@ function renderMaslowReport(els, totals, aiData) {
   }
 
   function openQuiz() {
-    current = 0;
-    answers.fill(null);
+    // Каждый раз начинаем заново с формы "как к вам обращаться" — в том
+    // числе при повторном прохождении ("Пройти заново"), так как это может
+    // быть уже другой сотрудник за тем же компьютером.
+    employeeName = "";
+    employeeDept = "";
+    if (nameInput) nameInput.value = "";
+    if (deptInput) deptInput.value = "";
+    if (startErrorEl) startErrorEl.style.display = "none";
+
+    startEl.style.display = "";
+    progressEl.style.display = "none";
+    bodyEl.style.display = "none";
+    navEl.style.display = "none";
+    doneEl.classList.remove("cabinet__quiz-done--visible");
+
     listView.style.display = "none";
     quiz.classList.add("cabinet__quiz--visible");
     requestAnimationFrame(function () {
@@ -551,6 +606,24 @@ function renderMaslowReport(els, totals, aiData) {
         quiz.classList.add("cabinet__quiz--active");
       });
     });
+
+    if (nameInput) nameInput.focus();
+  }
+
+  function startQuizAfterForm() {
+    const name = nameInput ? nameInput.value.trim() : "";
+    if (!name) {
+      if (startErrorEl) {
+        startErrorEl.textContent = "Пожалуйста, укажите ФИО.";
+        startErrorEl.style.display = "";
+      }
+      return;
+    }
+    employeeName = name;
+    employeeDept = deptInput ? deptInput.value.trim() : "";
+
+    current = 0;
+    answers.fill(null);
     renderQuestion();
   }
 
@@ -580,11 +653,15 @@ function renderMaslowReport(els, totals, aiData) {
 
   backBtn.addEventListener("click", closeQuiz);
   aiBtn.addEventListener("click", requestAiReport);
-  restartBtn.addEventListener("click", function () {
-    current = 0;
-    answers.fill(null);
-    renderQuestion();
-  });
+  if (startEl) {
+    startEl.addEventListener("submit", function (event) {
+      event.preventDefault();
+      startQuizAfterForm();
+    });
+  }
+  // "Пройти заново" — снова через форму "как к вам обращаться" (мог сесть
+  // другой сотрудник за тот же компьютер).
+  restartBtn.addEventListener("click", openQuiz);
 
   prevBtn.addEventListener("click", function () {
     if (current > 0) {

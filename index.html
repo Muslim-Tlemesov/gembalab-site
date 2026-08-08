@@ -304,6 +304,25 @@
                   <button type="button" class="cabinet__quiz-back" id="quizMaslowBack">← Список тестов</button>
                   <h3 class="cabinet__quiz-title">Тест Маслоу</h3>
 
+                  <form class="cabinet__quiz-start" id="quizMaslowStart">
+                    <p class="cabinet__placeholder">
+                      Перед началом укажите, пожалуйста, как к вам обращаться — это нужно, чтобы
+                      результат было понятно, кому он принадлежит.
+                    </p>
+                    <div class="cabinet__form-grid">
+                      <label class="cabinet__field">
+                        <span class="cabinet__field-label">ФИО</span>
+                        <input type="text" class="cabinet__input" id="quizMaslowName" placeholder="Иванов Иван" autocomplete="name" />
+                      </label>
+                      <label class="cabinet__field">
+                        <span class="cabinet__field-label">Отдел / должность</span>
+                        <input type="text" class="cabinet__input" id="quizMaslowDept" placeholder="Производство, оператор" />
+                      </label>
+                    </div>
+                    <p class="cabinet__result-ai-status cabinet__result-ai-status--error" id="quizMaslowStartError" style="display:none;"></p>
+                    <button type="submit" class="btn btn--primary cabinet__quiz-start-btn" id="quizMaslowStartBtn">Начать тест</button>
+                  </form>
+
                   <div class="cabinet__quiz-progress" id="quizMaslowProgress"></div>
 
                   <div class="cabinet__quiz-body" id="quizMaslowBody">
@@ -323,6 +342,7 @@
                       <button type="button" class="btn btn--primary" id="quizMaslowAiBtn">Сформировать отчёт</button>
                       <span class="cabinet__result-ai-status" id="quizMaslowAiStatus"></span>
                     </div>
+                    <p class="cabinet__result-submit-status" id="quizMaslowSubmitStatus"></p>
 
                     <div class="cabinet__result-chart" id="quizMaslowChart"></div>
 

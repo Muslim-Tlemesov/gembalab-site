@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#394155">
+<meta name="robots" content="noindex, nofollow">
+<title>Результаты сотрудников — GEMBALAB</title>
+<link rel="icon" type="image/png" href="assets/img/emblem-white.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="stylesheet" href="Cabinet/cabinet.css">
+<style>
+  /* Небольшие стили только для этой служебной страницы */
+  .admin-wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 20px 80px;
+  }
+  .admin-logo {
+    height: 32px;
+    margin-bottom: 36px;
+  }
+  .admin-gate {
+    max-width: 380px;
+    margin: 60px auto;
+    text-align: center;
+  }
+  .admin-gate h1 {
+    font-family: "Oswald", "Roboto", sans-serif;
+    font-size: 20px;
+    color: var(--graphite);
+    margin-bottom: 8px;
+  }
+  .admin-gate .cabinet__placeholder {
+    margin-bottom: 22px;
+  }
+  .admin-gate .cabinet__input {
+    width: 100%;
+    margin-bottom: 16px;
+    box-sizing: border-box;
+  }
+  .admin-gate .btn {
+    width: 100%;
+  }
+  .admin-error {
+    color: var(--red);
+    font-size: 13px;
+    margin-top: 12px;
+  }
+  .admin-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+  }
+  .admin-toolbar h1 {
+    font-family: "Oswald", "Roboto", sans-serif;
+    font-size: 20px;
+    color: var(--graphite);
+  }
+  .admin-toolbar-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .admin-table-wrap {
+    overflow-x: auto;
+    margin-top: 20px;
+  }
+  .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    min-width: 720px;
+  }
+  .admin-table th,
+  .admin-table td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .admin-table th {
+    font-family: "Oswald", "Roboto", sans-serif;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--text-muted);
+  }
+  .admin-table td.admin-name {
+    white-space: normal;
+    font-weight: 600;
+    color: var(--graphite);
+  }
+  .admin-tier--high {
+    color: var(--red);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="admin-wrap">
+  <img class="admin-logo" src="assets/img/logo-color.png" alt="GEMBALAB">
+
+  <div class="admin-gate" id="adminGate">
+    <h1>Результаты сотрудников</h1>
+    <p class="cabinet__placeholder">Служебная страница — введите пароль администратора.</p>
+    <form id="adminLoginForm">
+      <input type="password" class="cabinet__input" id="adminPassword" placeholder="Пароль" autocomplete="current-password">
+      <button type="submit" class="btn btn--primary">Войти</button>
+      <p class="admin-error" id="adminLoginError" style="display:none;"></p>
+    </form>
+  </div>
+
+  <div id="adminContent" style="display:none;">
+    <div class="admin-toolbar">
+      <h1>Результаты сотрудников — Тест Маслоу</h1>
+      <div class="admin-toolbar-actions">
+        <button type="button" class="btn btn--outline" id="adminRefreshBtn">Обновить</button>
+        <button type="button" class="btn btn--outline" id="adminCsvBtn">Скачать CSV</button>
+      </div>
+    </div>
+    <p class="cabinet__placeholder" id="adminStatus"></p>
+
+    <div class="admin-table-wrap">
+      <table class="admin-table" id="adminTable">
+        <thead>
+          <tr>
+            <th>ФИО</th>
+            <th>Отдел / должность</th>
+            <th>Дата прохождения</th>
+            <th>Безопасность</th>
+            <th>Принадлежность</th>
+            <th>Уважение</th>
+            <th>Самореализация</th>
+          </tr>
+        </thead>
+        <tbody id="adminTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Используем те же функции подсчёта "уровня" (высокая/средняя/низкая),
+     что и на самом сайте — чтобы цифры совпадали. -->
+<script src="Cabinet/quiz-maslow.js"></script>
+<script>
+(function () {
+  // Тот же адрес сервера, что и у самого теста.
+  var ADMIN_WORKER_URL = "https://gembalab-maslow-report.gembalab.workers.dev";
+
+  var gateEl = document.getElementById("adminGate");
+  var contentEl = document.getElementById("adminContent");
+  var loginForm = document.getElementById("adminLoginForm");
+  var passwordInput = document.getElementById("adminPassword");
+  var loginErrorEl = document.getElementById("adminLoginError");
+  var statusEl = document.getElementById("adminStatus");
+  var tableBodyEl = document.getElementById("adminTableBody");
+  var refreshBtn = document.getElementById("adminRefreshBtn");
+  var csvBtn = document.getElementById("adminCsvBtn");
+
+  var currentPassword = null; // хранится только в памяти вкладки, никуда не сохраняется
+  var currentRows = [];
+
+  function formatDate(iso) {
+    if (!iso) return "";
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleString("ru-RU", { dateStyle: "short", timeStyle: "short" });
+  }
+
+  function scoreCell(score) {
+    var tier = maslowTier(score);
+    var cls = tier === "high" ? ' class="admin-tier--high"' : "";
+    return "<td" + cls + ">" + score + " (" + maslowTierLabel(tier) + ")</td>";
+  }
+
+  function renderRows(rows) {
+    currentRows = rows;
+    tableBodyEl.innerHTML = "";
+    if (!rows.length) {
+      statusEl.textContent = "Пока никто не прошёл тест.";
+      return;
+    }
+    statusEl.textContent = "Всего результатов: " + rows.length;
+    rows.forEach(function (r) {
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        '<td class="admin-name">' + escapeHtml(r.full_name) + "</td>" +
+        "<td>" + escapeHtml(r.department || "—") + "</td>" +
+        "<td>" + formatDate(r.submitted_at) + "</td>" +
+        scoreCell(r.safety) +
+        scoreCell(r.belonging) +
+        scoreCell(r.esteem) +
+        scoreCell(r.selfact);
+      tableBodyEl.appendChild(tr);
+    });
+  }
+
+  function escapeHtml(str) {
+    var div = document.createElement("div");
+    div.textContent = str == null ? "" : String(str);
+    return div.innerHTML;
+  }
+
+  async function loadResults(password) {
+    statusEl.textContent = "Загружаем…";
+    tableBodyEl.innerHTML = "";
+    try {
+      var resp = await fetch(ADMIN_WORKER_URL + "/admin/list", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: password }),
+      });
+      var data = await resp.json().catch(function () { return null; });
+
+      if (resp.status === 401) {
+        throw { userMessage: "Неверный пароль." };
+      }
+      if (!resp.ok || !data || !data.ok) {
+        throw { userMessage: (data && data.error) || "Не удалось загрузить результаты." };
+      }
+
+      currentPassword = password;
+      gateEl.style.display = "none";
+      contentEl.style.display = "";
+      renderRows(data.rows || []);
+    } catch (err) {
+      if (contentEl.style.display === "none" || contentEl.style.display === "") {
+        // Ещё не залогинены — показываем ошибку на форме входа.
+      }
+      var message = (err && err.userMessage) || "Не удалось загрузить результаты. Проверьте связь с сервером.";
+      if (currentPassword === null) {
+        loginErrorEl.textContent = message;
+        loginErrorEl.style.display = "";
+      } else {
+        statusEl.textContent = message;
+      }
+    }
+  }
+
+  loginForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+    loginErrorEl.style.display = "none";
+    var pwd = passwordInput.value;
+    if (!pwd) return;
+    loadResults(pwd);
+  });
+
+  refreshBtn.addEventListener("click", function () {
+    if (currentPassword) loadResults(currentPassword);
+  });
+
+  csvBtn.addEventListener("click", function () {
+    if (!currentRows.length) return;
+    var header = ["ФИО", "Отдел/должность", "Дата", "Безопасность", "Принадлежность", "Уважение", "Самореализация"];
+    var lines = [header.join(";")];
+    currentRows.forEach(function (r) {
+      lines.push(
+        [
+          r.full_name,
+          r.department || "",
+          formatDate(r.submitted_at),
+          r.safety,
+          r.belonging,
+          r.esteem,
+          r.selfact,
+        ]
+          .map(function (v) { return '"' + String(v).replace(/"/g, '""') + '"'; })
+          .join(";")
+      );
+    });
+    var blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "maslow-results.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+})();
+</script>
+</body>
+</html>
