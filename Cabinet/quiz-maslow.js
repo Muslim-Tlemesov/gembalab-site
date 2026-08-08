@@ -410,6 +410,7 @@ function renderMaslowReport(els, totals, aiData) {
   let lastScores = null; // баллы последнего пройденного теста — нужны кнопке "Сформировать отчёт"
   let employeeName = ""; // ФИО, введённое перед началом теста — для общей базы результатов
   let employeeDept = ""; // отдел/должность, введённые перед началом теста
+  let lastSubmissionId = null; // id записи в общей базе — чтобы дописать туда текст ИИ, если он будет сформирован
 
   function renderProgress() {
     progressEl.innerHTML = "";
@@ -507,13 +508,16 @@ function renderMaslowReport(els, totals, aiData) {
     submitResultToServer(lastScores);
   }
 
-  // Отправляет результат (ФИО, отдел/должность, баллы) в общую базу на
-  // сервере — чтобы результат было видно в админке, а не только в этом
-  // браузере. Работает "по-тихому" в фоне; если сервер ещё не настроен
-  // (см. README.md) или недоступен — результат всё равно остаётся
-  // сохранённым локально (см. saveMaslowResult выше), сотрудник ничего
-  // не теряет.
+  // Отправляет результат (ФИО, отдел/должность, баллы и ответы по каждому
+  // вопросу) в общую базу на сервере — чтобы результат было видно в
+  // админке, а не только в этом браузере. Работает "по-тихому" в фоне;
+  // если сервер ещё не настроен (см. README.md) или недоступен — результат
+  // всё равно остаётся сохранённым локально (см. saveMaslowResult выше),
+  // сотрудник ничего не теряет. Запоминает id записи — он нужен, чтобы
+  // потом (если сотрудник нажмёт "Сформировать отчёт") дописать в эту же
+  // запись текст ИИ, см. submitAiToServer ниже.
   async function submitResultToServer(totals) {
+    lastSubmissionId = null;
     if (!submitStatusEl) return;
     submitStatusEl.classList.remove("cabinet__result-submit-status--error");
 
@@ -527,14 +531,42 @@ function renderMaslowReport(els, totals, aiData) {
       const resp = await fetch(MASLOW_AI_WORKER_URL + "/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: employeeName, department: employeeDept, scores: totals }),
+        body: JSON.stringify({
+          name: employeeName,
+          department: employeeDept,
+          scores: totals,
+          answers: answers,
+        }),
       });
       if (!resp.ok) throw new Error("HTTP " + resp.status);
+      const data = await resp.json().catch(function () { return null; });
+      if (data && data.id) lastSubmissionId = data.id;
       submitStatusEl.textContent = "Результат отправлен ответственному лицу.";
     } catch (err) {
       submitStatusEl.classList.add("cabinet__result-submit-status--error");
       submitStatusEl.textContent =
         "Не удалось отправить результат в общую базу — но он сохранён в этом браузере.";
+    }
+  }
+
+  // Дописывает текст ИИ в уже отправленную запись (см. submitResultToServer
+  // выше). Тоже работает "по-тихому" — если не получится, сотрудник это не
+  // увидит и не потеряет уже показанный ему текст, просто в админке для
+  // этой записи текст ИИ не появится.
+  async function submitAiToServer(data) {
+    if (!MASLOW_AI_WORKER_URL || !lastSubmissionId) return;
+    try {
+      await fetch(MASLOW_AI_WORKER_URL + "/submit/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: lastSubmissionId,
+          breakdown: data.breakdown,
+          recommendations_intro: data.recommendations_intro,
+        }),
+      });
+    } catch (err) {
+      // Молча игнорируем — сотруднику отчёт уже показан, это не критично.
     }
   }
 
@@ -572,6 +604,7 @@ function renderMaslowReport(els, totals, aiData) {
 
       saveMaslowResult(lastScores, data);
       if (window.refreshMaslowResultsPanel) window.refreshMaslowResultsPanel();
+      submitAiToServer(data);
 
       aiBtn.textContent = "Отчёт сформирован";
       aiStatusEl.textContent = "Готово — тексты выше персонализированы ИИ.";
@@ -589,6 +622,7 @@ function renderMaslowReport(els, totals, aiData) {
     // быть уже другой сотрудник за тем же компьютером.
     employeeName = "";
     employeeDept = "";
+    lastSubmissionId = null;
     if (nameInput) nameInput.value = "";
     if (deptInput) deptInput.value = "";
     if (startErrorEl) startErrorEl.style.display = "none";

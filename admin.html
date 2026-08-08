@@ -101,6 +101,53 @@
     color: var(--red);
     font-weight: 600;
   }
+  .admin-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .admin-detail-btn,
+  .admin-delete-btn {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+  .admin-delete-btn {
+    color: var(--red);
+    border-color: var(--red);
+  }
+  .admin-detail-row td {
+    padding: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .admin-detail {
+    display: none;
+    padding: 24px 14px 30px;
+    background: var(--bg-soft);
+    white-space: normal;
+  }
+  .admin-detail--open {
+    display: block;
+  }
+  .admin-detail .cabinet__result-chart,
+  .admin-detail .cabinet__result-scores,
+  .admin-detail .cabinet__result-breakdown,
+  .admin-detail .cabinet__result-recommend {
+    background: #fff;
+  }
+  .admin-answers {
+    max-width: 720px;
+    font-size: 13px;
+    color: var(--graphite);
+    line-height: 1.8;
+    padding-left: 20px;
+  }
+  .admin-answers li {
+    margin-bottom: 4px;
+  }
+  .admin-no-ai-note {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
 </style>
 </head>
 <body>
@@ -138,6 +185,7 @@
             <th>Принадлежность</th>
             <th>Уважение</th>
             <th>Самореализация</th>
+            <th></th>
           </tr>
         </thead>
         <tbody id="adminTableBody"></tbody>
@@ -180,6 +228,96 @@
     return "<td" + cls + ">" + score + " (" + maslowTierLabel(tier) + ")</td>";
   }
 
+  function escapeHtml(str) {
+    var div = document.createElement("div");
+    div.textContent = str == null ? "" : String(str);
+    return div.innerHTML;
+  }
+
+  function safeParse(json) {
+    if (!json) return null;
+    try {
+      return JSON.parse(json);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function buildAnswersList(answers) {
+    var wrap = document.createElement("div");
+    if (!answers || !Array.isArray(answers) || answers.length !== MASLOW_QUESTIONS.length) {
+      wrap.innerHTML = '<p class="cabinet__placeholder">Ответы по вопросам не сохранены для этой записи (тест был пройден до появления этой функции).</p>';
+      return wrap;
+    }
+    var ol = document.createElement("ol");
+    ol.className = "admin-answers";
+    MASLOW_QUESTIONS.forEach(function (q, i) {
+      var chosen = answers[i];
+      var label = chosen != null && MASLOW_OPTIONS[chosen] != null ? MASLOW_OPTIONS[chosen] : "—";
+      var li = document.createElement("li");
+      li.textContent = q.text + " — " + label;
+      ol.appendChild(li);
+    });
+    wrap.appendChild(ol);
+    return wrap;
+  }
+
+  // Разворачиваемая карточка сотрудника — использует ту же функцию
+  // renderMaslowReport(), что и сам тест на сайте, поэтому вид совпадает
+  // один в один (график, расшифровка, рекомендации), плюс список ответов
+  // по каждому вопросу.
+  function buildDetail(r) {
+    var wrap = document.createElement("div");
+    wrap.className = "admin-detail";
+
+    var aiBreakdown = safeParse(r.ai_breakdown);
+    var aiData = aiBreakdown ? { breakdown: aiBreakdown, recommendations_intro: r.ai_recommendations || "" } : null;
+
+    if (!aiData) {
+      var note = document.createElement("p");
+      note.className = "admin-no-ai-note";
+      note.textContent = "Сотрудник не формировал ИИ-отчёт — ниже стандартный (шаблонный) разбор по баллам.";
+      wrap.appendChild(note);
+    }
+
+    var chartEl = document.createElement("div");
+    chartEl.className = "cabinet__result-chart";
+    var scoresTitle = document.createElement("h4");
+    scoresTitle.className = "cabinet__section-title";
+    scoresTitle.textContent = "Расшифровка результатов";
+    var scoresEl = document.createElement("ul");
+    scoresEl.className = "cabinet__result-scores";
+    var breakdownEl = document.createElement("div");
+    breakdownEl.className = "cabinet__result-breakdown";
+    var recommendTitle = document.createElement("h4");
+    recommendTitle.className = "cabinet__section-title";
+    recommendTitle.textContent = "Рекомендации";
+    var recommendEl = document.createElement("div");
+    recommendEl.className = "cabinet__result-recommend";
+    var appendixEl = document.createElement("div"); // не показываем, но нужен для renderMaslowReport
+
+    wrap.appendChild(chartEl);
+    wrap.appendChild(scoresTitle);
+    wrap.appendChild(scoresEl);
+    wrap.appendChild(breakdownEl);
+    wrap.appendChild(recommendTitle);
+    wrap.appendChild(recommendEl);
+
+    renderMaslowReport(
+      { chartEl: chartEl, scoresEl: scoresEl, breakdownEl: breakdownEl, recommendEl: recommendEl, appendixEl: appendixEl },
+      { safety: r.safety, belonging: r.belonging, esteem: r.esteem, selfact: r.selfact },
+      aiData
+    );
+
+    var answersTitle = document.createElement("h4");
+    answersTitle.className = "cabinet__section-title";
+    answersTitle.textContent = "Ответы по вопросам";
+    wrap.appendChild(answersTitle);
+    wrap.appendChild(buildAnswersList(safeParse(r.answers)));
+
+    return wrap;
+  }
+
   function renderRows(rows) {
     currentRows = rows;
     tableBodyEl.innerHTML = "";
@@ -197,15 +335,65 @@
         scoreCell(r.safety) +
         scoreCell(r.belonging) +
         scoreCell(r.esteem) +
-        scoreCell(r.selfact);
+        scoreCell(r.selfact) +
+        '<td class="admin-actions">' +
+        '<button type="button" class="btn btn--outline admin-detail-btn">Подробнее</button>' +
+        '<button type="button" class="btn btn--outline admin-delete-btn">Удалить</button>' +
+        "</td>";
       tableBodyEl.appendChild(tr);
+
+      var detailRow = document.createElement("tr");
+      detailRow.className = "admin-detail-row";
+      var detailCell = document.createElement("td");
+      detailCell.colSpan = 8;
+      detailRow.appendChild(detailCell);
+      tableBodyEl.appendChild(detailRow);
+
+      var built = false;
+      var detailEl = null;
+      var btn = tr.querySelector(".admin-detail-btn");
+      btn.addEventListener("click", function () {
+        if (!built) {
+          detailEl = buildDetail(r);
+          detailCell.appendChild(detailEl);
+          built = true;
+        }
+        var isOpen = detailEl.classList.toggle("admin-detail--open");
+        btn.textContent = isOpen ? "Скрыть" : "Подробнее";
+      });
+
+      var deleteBtn = tr.querySelector(".admin-delete-btn");
+      deleteBtn.addEventListener("click", function () {
+        deleteRow(r.id, tr, detailRow, deleteBtn);
+      });
     });
   }
 
-  function escapeHtml(str) {
-    var div = document.createElement("div");
-    div.textContent = str == null ? "" : String(str);
-    return div.innerHTML;
+  async function deleteRow(id, tr, detailRow, deleteBtn) {
+    if (!window.confirm("Удалить результат «" + tr.querySelector(".admin-name").textContent + "» без возможности восстановления?")) {
+      return;
+    }
+    deleteBtn.disabled = true;
+    deleteBtn.textContent = "Удаляем…";
+    try {
+      var resp = await fetch(ADMIN_WORKER_URL + "/admin/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: currentPassword, id: id }),
+      });
+      var data = await resp.json().catch(function () { return null; });
+      if (!resp.ok || !data || !data.ok) {
+        throw new Error((data && data.error) || "HTTP " + resp.status);
+      }
+      tr.remove();
+      detailRow.remove();
+      currentRows = currentRows.filter(function (r) { return r.id !== id; });
+      statusEl.textContent = "Всего результатов: " + currentRows.length;
+    } catch (err) {
+      deleteBtn.disabled = false;
+      deleteBtn.textContent = "Удалить";
+      window.alert("Не удалось удалить: " + (err && err.message ? err.message : "неизвестная ошибка"));
+    }
   }
 
   async function loadResults(password) {
