@@ -129,18 +129,16 @@
   .admin-delete-btn:hover {
     background: rgba(233, 21, 43, 0.08);
   }
-  .admin-detail-row td {
-    padding: 0;
-    border-bottom: 1px solid var(--border);
+  .admin-detail-heading {
+    font-family: "Oswald", "Roboto", sans-serif;
+    font-size: 22px;
+    color: var(--graphite);
+    margin: 4px 0 24px;
   }
   .admin-detail {
-    display: none;
-    padding: 24px 14px 30px;
-    background: var(--bg-soft);
+    padding: 10px 0 30px;
+    background: #fff;
     white-space: normal;
-  }
-  .admin-detail--open {
-    display: block;
   }
   .admin-detail .cabinet__result-chart,
   .admin-detail .cabinet__result-scores,
@@ -165,22 +163,16 @@
   }
 
   /* Печать / "Сохранить как PDF" — скрываем всё лишнее (форма входа, кнопки,
-     статус), карточки с подробностями показываем всегда, независимо от того,
-     были ли они развёрнуты на экране. */
+     статус, кнопку "Назад"). Печатается только то, что сейчас видно на
+     экране: либо сводная таблица (общая страница), либо разбор одного
+     сотрудника (страница отдельного результата). */
   @media print {
     .admin-gate,
     .admin-toolbar-actions,
     .admin-actions,
-    #adminStatus {
+    #adminStatus,
+    #adminBackBtn {
       display: none !important;
-    }
-    .admin-detail {
-      display: block !important;
-      background: #fff;
-    }
-    .admin-detail-row {
-      page-break-inside: avoid;
-      break-inside: avoid;
     }
     .admin-table {
       min-width: 0;
@@ -207,31 +199,44 @@
   </div>
 
   <div id="adminContent" style="display:none;">
-    <div class="admin-toolbar">
-      <h1>Результаты сотрудников — Тест Маслоу</h1>
-      <div class="admin-toolbar-actions">
-        <button type="button" class="btn btn--outline" id="adminRefreshBtn">Обновить</button>
-        <button type="button" class="btn btn--outline" id="adminPdfBtn">Скачать PDF</button>
+    <div id="adminListView">
+      <div class="admin-toolbar">
+        <h1>Результаты сотрудников — Тест Маслоу</h1>
+        <div class="admin-toolbar-actions">
+          <button type="button" class="btn btn--outline" id="adminRefreshBtn">Обновить</button>
+          <button type="button" class="btn btn--outline" id="adminPdfBtn">Скачать PDF</button>
+        </div>
+      </div>
+      <p class="cabinet__placeholder" id="adminStatus"></p>
+
+      <div class="admin-table-wrap">
+        <table class="admin-table" id="adminTable">
+          <thead>
+            <tr>
+              <th>ФИО</th>
+              <th>Отдел / должность</th>
+              <th>Дата прохождения</th>
+              <th>Безопасность</th>
+              <th>Принадлежность</th>
+              <th>Уважение</th>
+              <th>Самореализация</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="adminTableBody"></tbody>
+        </table>
       </div>
     </div>
-    <p class="cabinet__placeholder" id="adminStatus"></p>
 
-    <div class="admin-table-wrap">
-      <table class="admin-table" id="adminTable">
-        <thead>
-          <tr>
-            <th>ФИО</th>
-            <th>Отдел / должность</th>
-            <th>Дата прохождения</th>
-            <th>Безопасность</th>
-            <th>Принадлежность</th>
-            <th>Уважение</th>
-            <th>Самореализация</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="adminTableBody"></tbody>
-      </table>
+    <div id="adminDetailView" style="display:none;">
+      <div class="admin-toolbar">
+        <button type="button" class="btn btn--outline" id="adminBackBtn">← Назад к списку</button>
+        <div class="admin-toolbar-actions">
+          <button type="button" class="btn btn--outline" id="adminDetailPdfBtn">Скачать PDF</button>
+        </div>
+      </div>
+      <h2 class="admin-detail-heading" id="adminDetailHeading"></h2>
+      <div id="adminDetailContent"></div>
     </div>
   </div>
 </div>
@@ -253,6 +258,12 @@
   var tableBodyEl = document.getElementById("adminTableBody");
   var refreshBtn = document.getElementById("adminRefreshBtn");
   var pdfBtn = document.getElementById("adminPdfBtn");
+  var listViewEl = document.getElementById("adminListView");
+  var detailViewEl = document.getElementById("adminDetailView");
+  var detailHeadingEl = document.getElementById("adminDetailHeading");
+  var detailContentEl = document.getElementById("adminDetailContent");
+  var backBtn = document.getElementById("adminBackBtn");
+  var detailPdfBtn = document.getElementById("adminDetailPdfBtn");
 
   var currentPassword = null; // хранится только в памяти вкладки, никуда не сохраняется
   var currentRows = [];
@@ -384,34 +395,36 @@
         "</td>";
       tableBodyEl.appendChild(tr);
 
-      var detailRow = document.createElement("tr");
-      detailRow.className = "admin-detail-row";
-      var detailCell = document.createElement("td");
-      detailCell.colSpan = 8;
-      detailRow.appendChild(detailCell);
-      tableBodyEl.appendChild(detailRow);
-
-      var built = false;
-      var detailEl = null;
       var btn = tr.querySelector(".admin-detail-btn");
       btn.addEventListener("click", function () {
-        if (!built) {
-          detailEl = buildDetail(r);
-          detailCell.appendChild(detailEl);
-          built = true;
-        }
-        var isOpen = detailEl.classList.toggle("admin-detail--open");
-        btn.textContent = isOpen ? "Скрыть" : "Подробнее";
+        showDetailView(r);
       });
 
       var deleteBtn = tr.querySelector(".admin-delete-btn");
       deleteBtn.addEventListener("click", function () {
-        deleteRow(r.id, tr, detailRow, deleteBtn);
+        deleteRow(r.id, tr, deleteBtn);
       });
     });
   }
 
-  async function deleteRow(id, tr, detailRow, deleteBtn) {
+  // Открыть результат конкретного сотрудника отдельной страницей (вместо
+  // раскрытия внутри общей таблицы) — со своей кнопкой "Скачать PDF",
+  // которая печатает только этого сотрудника.
+  function showDetailView(r) {
+    detailHeadingEl.textContent = r.full_name + (r.department ? " — " + r.department : "");
+    detailContentEl.innerHTML = "";
+    detailContentEl.appendChild(buildDetail(r));
+    listViewEl.style.display = "none";
+    detailViewEl.style.display = "";
+    window.scrollTo(0, 0);
+  }
+
+  function showListView() {
+    detailViewEl.style.display = "none";
+    listViewEl.style.display = "";
+  }
+
+  async function deleteRow(id, tr, deleteBtn) {
     if (!window.confirm("Удалить результат «" + tr.querySelector(".admin-name").textContent + "» без возможности восстановления?")) {
       return;
     }
@@ -428,7 +441,6 @@
         throw new Error((data && data.error) || "HTTP " + resp.status);
       }
       tr.remove();
-      detailRow.remove();
       currentRows = currentRows.filter(function (r) { return r.id !== id; });
       statusEl.textContent = "Всего результатов: " + currentRows.length;
     } catch (err) {
@@ -486,17 +498,19 @@
     if (currentPassword) loadResults(currentPassword);
   });
 
+  // На общей странице PDF — это краткая сводная таблица, как она выглядит
+  // на экране (без подробностей по каждому сотруднику).
   pdfBtn.addEventListener("click", function () {
     if (!currentRows.length) return;
-    // Раскрываем все карточки "Подробнее", чтобы в PDF попали полные данные
-    // по каждому сотруднику, а не только сводная таблица.
-    var toOpen = tableBodyEl.querySelectorAll(".admin-detail-btn");
-    toOpen.forEach(function (btn) {
-      if (btn.textContent === "Подробнее") btn.click();
-    });
-    window.setTimeout(function () {
-      window.print();
-    }, 50);
+    window.print();
+  });
+
+  backBtn.addEventListener("click", showListView);
+
+  // На странице отдельного сотрудника PDF — это его полный разбор
+  // (график, расшифровка, рекомендации, ответы по вопросам).
+  detailPdfBtn.addEventListener("click", function () {
+    window.print();
   });
 })();
 </script>
