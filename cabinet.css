@@ -317,6 +317,20 @@
   flex-shrink: 0;
 }
 
+/* Сайтовый стиль ".btn--outline" рассчитан на тёмный фон (белый текст на
+   полупрозрачной белой рамке) — внутри личного кабинета фон панелей белый,
+   поэтому такие кнопки без переопределения не видны (белый текст на белом).
+   Переопределяем везде внутри кабинета: "Назад", "Пройти заново",
+   "Удалить результат" и т.д. */
+.cabinet__panel .btn--outline {
+  color: var(--graphite);
+  border-color: var(--border);
+}
+.cabinet__panel .btn--outline:hover {
+  border-color: var(--graphite);
+  background: var(--bg-soft);
+}
+
 .cabinet__quiz-nav {
   display: flex;
   gap: 14px;
@@ -593,15 +607,21 @@
   border-color: var(--red);
 }
 .cabinet__quiz-points-total {
-  margin-top: 16px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-muted);
+  display: inline-block;
+  margin-bottom: 18px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: var(--bg-soft);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--graphite);
 }
 .cabinet__quiz-points-total--ok {
+  background: rgba(26, 143, 76, 0.12);
   color: #1a8f4c;
 }
 .cabinet__quiz-points-total--error {
+  background: rgba(233, 21, 43, 0.1);
   color: var(--red);
 }
 
