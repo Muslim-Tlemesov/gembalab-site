@@ -1,0 +1,150 @@
+/* Стили, уникальные для about.html (страница «Кто мы») */
+
+.page-hero__eyebrow {
+  color: var(--red);
+  text-transform: uppercase;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  margin-bottom: 10px;
+  font-family: "Oswald", sans-serif;
+}
+
+.page-hero__eyebrow--secondary {
+  color: var(--red);
+  text-transform: uppercase;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  margin-bottom: 10px;
+  font-family: "Oswald", sans-serif;
+  margin-top: 20px;
+}
+
+/* Модификатор — список слева, блок с эмблемами справа на странице «Кто мы» */
+.page-hero--menu {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 30px;
+}
+.page-hero--menu > .page-hero__list {
+  flex: 0 0 360px;
+  max-width: 360px;
+}
+.page-hero--menu > .container {
+  flex: 1;
+  min-width: 280px;
+  margin: 0;
+}
+
+.page-hero__list {
+  list-style: none;
+}
+
+.hero__accent {
+  color: var(--red);
+}
+
+.about__intro {
+  max-width: 820px;
+}
+.about__intro p {
+  color: var(--graphite);
+  font-size: 16px;
+  margin-bottom: 16px;
+}
+.about__divider {
+  width: 56px;
+  height: 3px;
+  background: var(--red);
+  margin: 32px 0;
+  border: none;
+}
+
+.about__founders {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 26px;
+}
+.founder-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--red);
+  padding: 28px;
+  transition: transform 0.5s ease;
+  box-shadow: 2px 2px 10px 0px rgba(81, 80, 118, 0.1);
+}
+
+.founder-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 5px 15px 15px 0px rgba(81, 80, 118, 0.1);
+}
+
+.founder-card h3 {
+  font-size: 18px;
+  color: var(--graphite);
+  margin-bottom: 4px;
+}
+.founder-card__role {
+  font-size: 13px;
+  color: var(--red);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+  font-family: "Oswald", sans-serif;
+}
+.founder-card__timeline {
+  margin-bottom: 14px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.founder-card__timeline b {
+  color: var(--graphite);
+  font-weight: 700;
+}
+
+.founder-card__certs {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.founder-card__certs-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+  font-family: "Oswald", sans-serif;
+}
+.founder-card__certs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.founder-card__cert-link {
+  display: block;
+}
+.founder-card__cert-link img {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: zoom-in;
+  transition: opacity 0.15s;
+}
+.founder-card__cert-link:hover img {
+  opacity: 0.85;
+}
+
+.about__together-note {
+  background: var(--graphite);
+  color: #fff;
+  padding: 24px 28px;
+  margin-top: 30px;
+  border-left: 4px solid var(--red);
+  font-size: 15px;
+  color: #dce1e7;
+}
