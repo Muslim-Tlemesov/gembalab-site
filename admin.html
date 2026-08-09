@@ -196,6 +196,7 @@
     .admin-actions,
     #adminStatus,
     #adminBelbinStatus,
+    #adminDiscStatus,
     #adminBackBtn {
       display: none !important;
     }
@@ -227,6 +228,7 @@
     <div class="admin-tabs" id="adminTabs">
       <button type="button" class="admin-tab admin-tab--active" id="adminTabMaslow">Тест Маслоу</button>
       <button type="button" class="admin-tab" id="adminTabBelbin">Тест Белбина</button>
+      <button type="button" class="admin-tab" id="adminTabDisc">Тест DISC</button>
     </div>
 
     <div id="adminListView">
@@ -284,6 +286,32 @@
       </div>
     </div>
 
+    <div id="adminDiscListView" style="display:none;">
+      <div class="admin-toolbar">
+        <h1>Результаты сотрудников — Тест DISC</h1>
+        <div class="admin-toolbar-actions">
+          <button type="button" class="btn btn--outline" id="adminDiscRefreshBtn">Обновить</button>
+          <button type="button" class="btn btn--outline" id="adminDiscPdfBtn">Скачать PDF</button>
+        </div>
+      </div>
+      <p class="cabinet__placeholder" id="adminDiscStatus"></p>
+
+      <div class="admin-table-wrap">
+        <table class="admin-table" id="adminDiscTable">
+          <thead>
+            <tr>
+              <th>ФИО</th>
+              <th>Отдел / должность</th>
+              <th>Дата прохождения</th>
+              <th>Ведущий тип</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="adminDiscTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <div id="adminDetailView" style="display:none;">
       <div class="admin-toolbar">
         <button type="button" class="btn btn--outline" id="adminBackBtn">← Назад к списку</button>
@@ -304,6 +332,7 @@
      теста и выходят, если их нет) — используются только их функции. -->
 <script src="Cabinet/quiz-maslow.js"></script>
 <script src="Cabinet/quiz-belbin.js"></script>
+<script src="Cabinet/quiz-disc.js"></script>
 <script>
 (function () {
   // Тот же адрес сервера, что и у самого теста.
@@ -333,9 +362,17 @@
   var belbinRefreshBtn = document.getElementById("adminBelbinRefreshBtn");
   var belbinPdfBtn = document.getElementById("adminBelbinPdfBtn");
 
+  var tabDiscBtn = document.getElementById("adminTabDisc");
+  var discListEl = document.getElementById("adminDiscListView");
+  var discStatusEl = document.getElementById("adminDiscStatus");
+  var discTableBodyEl = document.getElementById("adminDiscTableBody");
+  var discRefreshBtn = document.getElementById("adminDiscRefreshBtn");
+  var discPdfBtn = document.getElementById("adminDiscPdfBtn");
+
   var currentPassword = null; // хранится только в памяти вкладки, никуда не сохраняется
   var currentRows = []; // результаты Маслоу
   var currentBelbinRows = []; // результаты Белбина
+  var currentDiscRows = []; // результаты DISC
   var currentTab = "maslow"; // какая вкладка сейчас открыта
   var currentDetailKind = "maslow"; // какому тесту принадлежит открытая карточка "Подробнее"
 
@@ -583,17 +620,120 @@
     });
   }
 
+  // ===== Тест DISC — те же функции подсчёта/отрисовки, что и на самом
+  // сайте (renderDiscReport, DISC_LETTER_ORDER и т.д. приходят из
+  // Cabinet/quiz-disc.js, подключённого выше). =====
+
+  function discTotalsFromRow(r) {
+    return { d: r.d_score || 0, i: r.i_score || 0, s: r.s_score || 0, c: r.c_score || 0 };
+  }
+
+  // Сырые ответы хранятся как answers[блок] = { most: индекс, least: индекс }
+  // — пересобираем количество "больше/меньше всего" по буквам, как это
+  // делает сам тест при подсчёте.
+  function discCountsFromAnswers(rawAnswers) {
+    var mostCount = { d: 0, i: 0, s: 0, c: 0 };
+    var leastCount = { d: 0, i: 0, s: 0, c: 0 };
+    if (!rawAnswers || !Array.isArray(rawAnswers) || rawAnswers.length !== DISC_QUESTIONS.length) {
+      return { most: mostCount, least: leastCount };
+    }
+    DISC_QUESTIONS.forEach(function (q, qi) {
+      var a = rawAnswers[qi];
+      if (a && a.most != null && q.options[a.most]) mostCount[q.options[a.most].letter]++;
+      if (a && a.least != null && q.options[a.least]) leastCount[q.options[a.least].letter]++;
+    });
+    return { most: mostCount, least: leastCount };
+  }
+
+  function discTopLabel(r) {
+    var top = discTopLetters(discTotalsFromRow(r));
+    return top.map(function (t) { return DISC_LETTER_SHORT[t.key]; }).join(" / ");
+  }
+
+  // Карточка сотрудника по тесту DISC — использует ту же функцию
+  // renderDiscReport(), что и сам тест на сайте (график + таблица баллов +
+  // текстовые разделы, с текстом ИИ, если он был сформирован).
+  function buildDiscDetail(r) {
+    var wrap = document.createElement("div");
+    wrap.className = "admin-detail";
+
+    var totals = discTotalsFromRow(r);
+    var counts = discCountsFromAnswers(safeParse(r.answers));
+    var aiData = safeParse(r.ai_report);
+
+    if (!aiData) {
+      var note = document.createElement("p");
+      note.className = "admin-no-ai-note";
+      note.textContent = "Сотрудник не формировал ИИ-отчёт — ниже базовое описание ведущего типа.";
+      wrap.appendChild(note);
+    }
+
+    var chartEl = document.createElement("div");
+    chartEl.className = "cabinet__disc-chart";
+    var tableTitle = document.createElement("h4");
+    tableTitle.className = "cabinet__section-title";
+    tableTitle.textContent = "Баллы по типам";
+    var tableWrap = document.createElement("div");
+    tableWrap.className = "cabinet__disc-table-wrap";
+    var textWrap = document.createElement("div");
+
+    wrap.appendChild(chartEl);
+    wrap.appendChild(tableTitle);
+    wrap.appendChild(tableWrap);
+    wrap.appendChild(textWrap);
+
+    renderDiscReport({ chartEl: chartEl, tableEl: tableWrap, textEl: textWrap }, totals, counts, aiData);
+
+    return wrap;
+  }
+
+  function renderDiscRows(rows) {
+    currentDiscRows = rows;
+    discTableBodyEl.innerHTML = "";
+    if (!rows.length) {
+      discStatusEl.textContent = "Пока никто не прошёл тест.";
+      return;
+    }
+    discStatusEl.textContent = "Всего результатов: " + rows.length;
+    rows.forEach(function (r) {
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        '<td class="admin-name">' + escapeHtml(r.full_name) + "</td>" +
+        "<td>" + escapeHtml(r.department || "—") + "</td>" +
+        "<td>" + formatDate(r.submitted_at) + "</td>" +
+        "<td>" + escapeHtml(discTopLabel(r)) + "</td>" +
+        '<td class="admin-actions">' +
+        '<button type="button" class="btn btn--outline admin-detail-btn">Подробнее</button>' +
+        '<button type="button" class="btn btn--outline admin-delete-btn">Удалить</button>' +
+        "</td>";
+      discTableBodyEl.appendChild(tr);
+
+      var btn = tr.querySelector(".admin-detail-btn");
+      btn.addEventListener("click", function () {
+        showDetailView(r, "disc");
+      });
+
+      var deleteBtn = tr.querySelector(".admin-delete-btn");
+      deleteBtn.addEventListener("click", function () {
+        deleteRow(r.id, tr, deleteBtn, "disc");
+      });
+    });
+  }
+
   // ===== Переключение вкладок / список ↔ карточка сотрудника =====
 
   function hideListViews() {
     listViewEl.style.display = "none";
     belbinListEl.style.display = "none";
+    discListEl.style.display = "none";
   }
 
   function showActiveTabList() {
     hideListViews();
     if (currentTab === "belbin") {
       belbinListEl.style.display = "";
+    } else if (currentTab === "disc") {
+      discListEl.style.display = "";
     } else {
       listViewEl.style.display = "";
     }
@@ -603,18 +743,23 @@
     currentTab = tab;
     tabMaslowBtn.classList.toggle("admin-tab--active", tab === "maslow");
     tabBelbinBtn.classList.toggle("admin-tab--active", tab === "belbin");
+    tabDiscBtn.classList.toggle("admin-tab--active", tab === "disc");
     detailViewEl.style.display = "none";
     showActiveTabList();
   }
 
   // Открыть результат конкретного сотрудника отдельной страницей (вместо
   // раскрытия внутри общей таблицы) — со своей кнопкой "Скачать PDF",
-  // которая печатает только этого сотрудника. kind — "maslow" или "belbin".
+  // которая печатает только этого сотрудника. kind — "maslow", "belbin" или "disc".
   function showDetailView(r, kind) {
     currentDetailKind = kind || "maslow";
     detailHeadingEl.textContent = r.full_name + (r.department ? " — " + r.department : "");
     detailContentEl.innerHTML = "";
-    detailContentEl.appendChild(currentDetailKind === "belbin" ? buildBelbinDetail(r) : buildDetail(r));
+    var built;
+    if (currentDetailKind === "belbin") built = buildBelbinDetail(r);
+    else if (currentDetailKind === "disc") built = buildDiscDetail(r);
+    else built = buildDetail(r);
+    detailContentEl.appendChild(built);
     hideListViews();
     detailViewEl.style.display = "";
     window.scrollTo(0, 0);
@@ -626,14 +771,14 @@
   }
 
   async function deleteRow(id, tr, deleteBtn, kind) {
-    var isBelbin = kind === "belbin";
+    var endpoint = kind === "belbin" ? "/admin/belbin/delete" : kind === "disc" ? "/admin/disc/delete" : "/admin/delete";
     if (!window.confirm("Удалить результат «" + tr.querySelector(".admin-name").textContent + "» без возможности восстановления?")) {
       return;
     }
     deleteBtn.disabled = true;
     deleteBtn.textContent = "Удаляем…";
     try {
-      var resp = await fetch(ADMIN_WORKER_URL + (isBelbin ? "/admin/belbin/delete" : "/admin/delete"), {
+      var resp = await fetch(ADMIN_WORKER_URL + endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: currentPassword, id: id }),
@@ -643,9 +788,12 @@
         throw new Error((data && data.error) || "HTTP " + resp.status);
       }
       tr.remove();
-      if (isBelbin) {
+      if (kind === "belbin") {
         currentBelbinRows = currentBelbinRows.filter(function (r) { return r.id !== id; });
         belbinStatusEl.textContent = "Всего результатов: " + currentBelbinRows.length;
+      } else if (kind === "disc") {
+        currentDiscRows = currentDiscRows.filter(function (r) { return r.id !== id; });
+        discStatusEl.textContent = "Всего результатов: " + currentDiscRows.length;
       } else {
         currentRows = currentRows.filter(function (r) { return r.id !== id; });
         statusEl.textContent = "Всего результатов: " + currentRows.length;
@@ -679,9 +827,10 @@
       gateEl.style.display = "none";
       contentEl.style.display = "";
       renderRows(data.rows || []);
-      // Пароль общий для обоих тестов — сразу подгружаем и Белбина, чтобы
-      // переключение вкладки не требовало повторного ввода пароля.
+      // Пароль общий для всех тестов — сразу подгружаем Белбина и DISC,
+      // чтобы переключение вкладки не требовало повторного ввода пароля.
       loadBelbinResults(password);
+      loadDiscResults(password);
     } catch (err) {
       if (contentEl.style.display === "none" || contentEl.style.display === "") {
         // Ещё не залогинены — показываем ошибку на форме входа.
@@ -716,6 +865,26 @@
     }
   }
 
+  async function loadDiscResults(password) {
+    discStatusEl.textContent = "Загружаем…";
+    discTableBodyEl.innerHTML = "";
+    try {
+      var resp = await fetch(ADMIN_WORKER_URL + "/admin/disc/list", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: password }),
+      });
+      var data = await resp.json().catch(function () { return null; });
+      if (!resp.ok || !data || !data.ok) {
+        throw new Error((data && data.error) || "Не удалось загрузить результаты DISC.");
+      }
+      renderDiscRows(data.rows || []);
+    } catch (err) {
+      discStatusEl.textContent =
+        "Не удалось загрузить результаты DISC: " + (err && err.message ? err.message : "ошибка связи с сервером.");
+    }
+  }
+
   loginForm.addEventListener("submit", function (event) {
     event.preventDefault();
     loginErrorEl.style.display = "none";
@@ -732,11 +901,18 @@
     if (currentPassword) loadBelbinResults(currentPassword);
   });
 
+  discRefreshBtn.addEventListener("click", function () {
+    if (currentPassword) loadDiscResults(currentPassword);
+  });
+
   tabMaslowBtn.addEventListener("click", function () {
     switchTab("maslow");
   });
   tabBelbinBtn.addEventListener("click", function () {
     switchTab("belbin");
+  });
+  tabDiscBtn.addEventListener("click", function () {
+    switchTab("disc");
   });
 
   // На общей странице PDF — это краткая сводная таблица, как она выглядит
@@ -748,6 +924,11 @@
 
   belbinPdfBtn.addEventListener("click", function () {
     if (!currentBelbinRows.length) return;
+    window.print();
+  });
+
+  discPdfBtn.addEventListener("click", function () {
+    if (!currentDiscRows.length) return;
     window.print();
   });
 

@@ -196,11 +196,12 @@
                     <p class="cabinet__test-desc">Покажет, какую роль играешь в команде и чем будешь полезен</p>
                     <span class="cabinet__test-cta">Пройти тест →</span>
                   </div>
-                  <div class="cabinet__test-card">
+                  <div class="cabinet__test-card cabinet__test-card--clickable" data-quiz="disc" role="button" tabindex="0">
                     <div class="cabinet__test-head">
                       <div class="cabinet__test-title"><span class="cabinet__test-num">12.</span>DISC</div>
                     </div>
                     <p class="cabinet__test-desc">Покажет стиль поведения и общения</p>
+                    <span class="cabinet__test-cta">Пройти тест →</span>
                   </div>
                   <div class="cabinet__test-card">
                     <div class="cabinet__test-head">
@@ -430,6 +431,71 @@
                     <button type="button" class="btn btn--outline" id="quizBelbinRestart">Пройти заново</button>
                   </div>
                 </div>
+
+                <div class="cabinet__quiz" id="quizDisc">
+                  <button type="button" class="cabinet__quiz-back" id="quizDiscBack">← Список тестов</button>
+                  <h3 class="cabinet__quiz-title">Тест DISC</h3>
+
+                  <form class="cabinet__quiz-start" id="quizDiscStart">
+                    <p class="cabinet__placeholder">
+                      Перед началом укажите, пожалуйста, как к вам обращаться — это нужно, чтобы
+                      было понятно, кому принадлежит результат. Тест состоит из 28 блоков по 4 слова:
+                      в каждом блоке нужно отметить слово, которое подходит вам больше всего, и
+                      слово, которое подходит меньше всего.
+                    </p>
+                    <div class="cabinet__form-grid">
+                      <label class="cabinet__field">
+                        <span class="cabinet__field-label">ФИО</span>
+                        <input type="text" class="cabinet__input" id="quizDiscName" placeholder="Иванов Иван" autocomplete="name" />
+                      </label>
+                      <label class="cabinet__field">
+                        <span class="cabinet__field-label">Отдел / должность</span>
+                        <input type="text" class="cabinet__input" id="quizDiscDept" placeholder="Производство, оператор" />
+                      </label>
+                    </div>
+                    <p class="cabinet__result-ai-status cabinet__result-ai-status--error" id="quizDiscStartError" style="display:none;"></p>
+                    <button type="submit" class="btn btn--primary cabinet__quiz-start-btn" id="quizDiscStartBtn">Начать тест</button>
+                  </form>
+
+                  <div class="cabinet__quiz-progress" id="quizDiscProgress"></div>
+
+                  <div class="cabinet__quiz-body" id="quizDiscBody">
+                    <p class="cabinet__quiz-question-text" id="quizDiscQuestionText"></p>
+                    <p class="cabinet__placeholder" style="margin-bottom:12px;">
+                      В каждом блоке отметьте одно слово как «больше всего» и одно — как «меньше
+                      всего» (это должны быть разные слова).
+                    </p>
+                    <p class="cabinet__quiz-points-total" id="quizDiscTotal"></p>
+                    <div id="quizDiscOptions"></div>
+                  </div>
+
+                  <div class="cabinet__quiz-nav">
+                    <button type="button" class="btn btn--outline" id="quizDiscPrev">Назад</button>
+                    <button type="button" class="btn btn--primary" id="quizDiscNext">Далее</button>
+                  </div>
+
+                  <div class="cabinet__quiz-done" id="quizDiscDone">
+                    <h3 class="cabinet__quiz-title">Результаты теста DISC</h3>
+
+                    <div class="cabinet__result-ai">
+                      <button type="button" class="btn btn--primary" id="quizDiscAiBtn">Сформировать отчёт</button>
+                      <span class="cabinet__result-ai-status" id="quizDiscAiStatus"></span>
+                    </div>
+                    <p class="cabinet__result-submit-status" id="quizDiscSubmitStatus"></p>
+
+                    <div class="cabinet__disc-chart" id="quizDiscChart"></div>
+
+                    <h4 class="cabinet__section-title">Баллы по типам</h4>
+                    <div class="cabinet__disc-table-wrap" id="quizDiscTable"></div>
+
+                    <div id="quizDiscText"></div>
+
+                    <p class="cabinet__placeholder cabinet__result-note">
+                      Результат сохранён в этом браузере и виден в разделе «Результаты» слева.
+                    </p>
+                    <button type="button" class="btn btn--outline" id="quizDiscRestart">Пройти заново</button>
+                  </div>
+                </div>
               </div>
               <div class="cabinet__panel" id="panel-results">
                 <h2 class="cabinet__panel-title">Результаты</h2>
@@ -475,6 +541,28 @@
                   <div class="cabinet__belbin-table-wrap" id="belbinResultsTable"></div>
                   <h4 class="cabinet__section-title">Ваши роли в команде</h4>
                   <div id="belbinResultsTop"></div>
+                  <p class="cabinet__placeholder cabinet__result-note">
+                    Результат виден только в этом браузере на этом устройстве. Если очистить историю
+                    браузера или открыть сайт с другого устройства — результат нужно будет получить заново.
+                  </p>
+                </div>
+
+                <p class="cabinet__placeholder" id="discResultsEmpty">
+                  Здесь появится результат теста DISC — сохраняется прямо в этом браузере, без
+                  регистрации. Пройдите «DISC» в разделе «Список тестов и анкет».
+                </p>
+                <div id="discResultsFilled" style="display:none;">
+                  <div class="cabinet__result-header">
+                    <h3 class="cabinet__result-header-title">Тест DISC</h3>
+                    <div class="cabinet__result-header-actions">
+                      <span class="cabinet__placeholder cabinet__result-saved-at" id="discResultsDate"></span>
+                      <button type="button" class="btn btn--outline" id="discResultsClear">Удалить результат</button>
+                    </div>
+                  </div>
+                  <div class="cabinet__disc-chart" id="discResultsChart"></div>
+                  <h4 class="cabinet__section-title">Баллы по типам</h4>
+                  <div class="cabinet__disc-table-wrap" id="discResultsTable"></div>
+                  <div id="discResultsText"></div>
                   <p class="cabinet__placeholder cabinet__result-note">
                     Результат виден только в этом браузере на этом устройстве. Если очистить историю
                     браузера или открыть сайт с другого устройства — результат нужно будет получить заново.
@@ -554,5 +642,6 @@
     <script src="Cabinet/cabinet.js"></script>
     <script src="Cabinet/quiz-maslow.js"></script>
     <script src="Cabinet/quiz-belbin.js"></script>
+    <script src="Cabinet/quiz-disc.js"></script>
   </body>
 </html>
