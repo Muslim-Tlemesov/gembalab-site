@@ -1,0 +1,55 @@
+/* Стили, уникальные для contacts.html (страница «Контакты») */
+
+.contacts__card {
+  background: var(--graphite);
+  border-top: 4px solid var(--red);
+  padding: 36px 44px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+.contacts__main {
+  flex: 1;
+  min-width: 320px;
+}
+.contacts__sub {
+  color: #98a2b0;
+  font-size: 14px;
+  margin-bottom: 22px;
+}
+.contacts__table {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+.contacts__table-row {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 16px;
+  padding: 11px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.contacts__label {
+  color: #98a2b0;
+  font-size: 14px;
+}
+.contacts__value {
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+}
+.contacts__emblem {
+  width: 120px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+@media (max-width: 900px) {
+  .contacts__table-row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+  .contacts__emblem {
+    display: none;
+  }
+}
