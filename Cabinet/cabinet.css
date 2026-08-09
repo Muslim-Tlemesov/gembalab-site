@@ -554,6 +554,97 @@
   font-size: 12px;
 }
 
+/* Тест Белбина — распределение 10 баллов между вариантами вопроса */
+.cabinet__quiz-points {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 640px;
+}
+.cabinet__quiz-points-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 6px;
+  border-bottom: 1px solid var(--border);
+}
+.cabinet__quiz-points-row:last-child {
+  border-bottom: none;
+}
+.cabinet__quiz-points-label {
+  font-size: 15px;
+  color: var(--graphite);
+  flex: 1;
+}
+.cabinet__quiz-points-input {
+  width: 56px;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--graphite);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 8px 4px;
+}
+.cabinet__quiz-points-input:focus {
+  outline: none;
+  border-color: var(--red);
+}
+.cabinet__quiz-points-total {
+  display: inline-block;
+  margin-bottom: 18px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: var(--bg-soft);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--graphite);
+}
+.cabinet__quiz-points-total--ok {
+  background: rgba(26, 143, 76, 0.12);
+  color: #1a8f4c;
+}
+.cabinet__quiz-points-total--error {
+  background: rgba(233, 21, 43, 0.1);
+  color: var(--red);
+}
+
+/* Тест Белбина — таблица баллов по ролям и вопросам (как в отчёте) */
+.cabinet__belbin-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 8px;
+}
+.cabinet__belbin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 520px;
+}
+.cabinet__belbin-table th,
+.cabinet__belbin-table td {
+  text-align: center;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.cabinet__belbin-table th:first-child,
+.cabinet__belbin-table td:first-child {
+  text-align: left;
+}
+.cabinet__belbin-table th {
+  font-family: "Oswald", "Roboto", sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+}
+.cabinet__belbin-top td:first-child {
+  color: var(--red);
+  font-weight: 600;
+}
+
 @media (max-width: 900px) {
   .cabinet {
     flex-direction: column;
