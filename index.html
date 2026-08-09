@@ -571,7 +571,29 @@
               </div>
               <div class="cabinet__panel" id="panel-materials">
                 <h2 class="cabinet__panel-title">Учебные материалы</h2>
-                <p class="cabinet__placeholder">Раздел в разработке — содержимое появится позже.</p>
+                <div class="cabinet__material-card">
+                  <h3 class="cabinet__material-title">Первый урок</h3>
+                  <p class="cabinet__material-desc">
+                    Конспект урока в PDF и видеоразбор к нему.
+                  </p>
+                  <div class="cabinet__material-actions">
+                    <a class="btn btn--outline" href="assets/materials/%D0%9E%D1%81%D0%BD%D0%BE%D0%B2%D1%8B%20%D0%9A%D0%B0%D0%B9%D0%B4%D0%B7%D0%B5%D0%BD.pdf" target="_blank" rel="noopener">Открыть PDF в новой вкладке</a>
+                  </div>
+                  <div class="cabinet__material-pdf-wrap">
+                    <iframe
+                      class="cabinet__material-pdf-frame"
+                      id="materialPdfFrame1"
+                      data-src="assets/materials/%D0%9E%D1%81%D0%BD%D0%BE%D0%B2%D1%8B%20%D0%9A%D0%B0%D0%B9%D0%B4%D0%B7%D0%B5%D0%BD.pdf"
+                      title="Первый урок — PDF"
+                    ></iframe>
+                    <p class="cabinet__placeholder cabinet__material-pdf-fallback">
+                      Если файл не отображается — воспользуйтесь кнопкой «Открыть PDF в новой вкладке» выше.
+                    </p>
+                  </div>
+                  <div class="cabinet__material-video" id="materialVideo1">
+                    <p class="cabinet__placeholder">Видео появится здесь позже.</p>
+                  </div>
+                </div>
               </div>
               <div class="cabinet__panel" id="panel-payments">
                 <h2 class="cabinet__panel-title">Оплаты</h2>
@@ -643,5 +665,6 @@
     <script src="Cabinet/quiz-maslow.js"></script>
     <script src="Cabinet/quiz-belbin.js"></script>
     <script src="Cabinet/quiz-disc.js"></script>
+    <script src="Cabinet/materials.js"></script>
   </body>
 </html>
