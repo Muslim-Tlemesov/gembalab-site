@@ -161,16 +161,41 @@
     color: var(--text-muted);
     margin-bottom: 16px;
   }
+  .admin-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--border);
+  }
+  .admin-tab {
+    background: none;
+    border: none;
+    padding: 10px 4px;
+    margin-right: 20px;
+    font-family: "Oswald", "Roboto", sans-serif;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+  .admin-tab--active {
+    color: var(--graphite);
+    border-bottom-color: var(--red);
+  }
 
   /* Печать / "Сохранить как PDF" — скрываем всё лишнее (форма входа, кнопки,
-     статус, кнопку "Назад"). Печатается только то, что сейчас видно на
-     экране: либо сводная таблица (общая страница), либо разбор одного
-     сотрудника (страница отдельного результата). */
+     статус, кнопку "Назад", переключатель тестов). Печатается только то, что
+     сейчас видно на экране: либо сводная таблица (общая страница), либо
+     разбор одного сотрудника (страница отдельного результата). */
   @media print {
     .admin-gate,
+    .admin-tabs,
     .admin-toolbar-actions,
     .admin-actions,
     #adminStatus,
+    #adminBelbinStatus,
     #adminBackBtn {
       display: none !important;
     }
@@ -199,6 +224,11 @@
   </div>
 
   <div id="adminContent" style="display:none;">
+    <div class="admin-tabs" id="adminTabs">
+      <button type="button" class="admin-tab admin-tab--active" id="adminTabMaslow">Тест Маслоу</button>
+      <button type="button" class="admin-tab" id="adminTabBelbin">Тест Белбина</button>
+    </div>
+
     <div id="adminListView">
       <div class="admin-toolbar">
         <h1>Результаты сотрудников — Тест Маслоу</h1>
@@ -228,6 +258,32 @@
       </div>
     </div>
 
+    <div id="adminBelbinListView" style="display:none;">
+      <div class="admin-toolbar">
+        <h1>Результаты сотрудников — Тест Белбина</h1>
+        <div class="admin-toolbar-actions">
+          <button type="button" class="btn btn--outline" id="adminBelbinRefreshBtn">Обновить</button>
+          <button type="button" class="btn btn--outline" id="adminBelbinPdfBtn">Скачать PDF</button>
+        </div>
+      </div>
+      <p class="cabinet__placeholder" id="adminBelbinStatus"></p>
+
+      <div class="admin-table-wrap">
+        <table class="admin-table" id="adminBelbinTable">
+          <thead>
+            <tr>
+              <th>ФИО</th>
+              <th>Отдел / должность</th>
+              <th>Дата прохождения</th>
+              <th>Ведущие роли</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="adminBelbinTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <div id="adminDetailView" style="display:none;">
       <div class="admin-toolbar">
         <button type="button" class="btn btn--outline" id="adminBackBtn">← Назад к списку</button>
@@ -241,9 +297,13 @@
   </div>
 </div>
 
-<!-- Используем те же функции подсчёта "уровня" (высокая/средняя/низкая),
-     что и на самом сайте — чтобы цифры совпадали. -->
+<!-- Используем те же функции подсчёта результатов и отрисовки отчёта, что
+     и на самом сайте (для обоих тестов) — чтобы цифры и текст совпадали.
+     Оба файла безопасно ничего не делают на этой странице сами по себе
+     (их внутренние блоки проверяют наличие своих элементов на странице
+     теста и выходят, если их нет) — используются только их функции. -->
 <script src="Cabinet/quiz-maslow.js"></script>
+<script src="Cabinet/quiz-belbin.js"></script>
 <script>
 (function () {
   // Тот же адрес сервера, что и у самого теста.
@@ -265,8 +325,19 @@
   var backBtn = document.getElementById("adminBackBtn");
   var detailPdfBtn = document.getElementById("adminDetailPdfBtn");
 
+  var tabMaslowBtn = document.getElementById("adminTabMaslow");
+  var tabBelbinBtn = document.getElementById("adminTabBelbin");
+  var belbinListEl = document.getElementById("adminBelbinListView");
+  var belbinStatusEl = document.getElementById("adminBelbinStatus");
+  var belbinTableBodyEl = document.getElementById("adminBelbinTableBody");
+  var belbinRefreshBtn = document.getElementById("adminBelbinRefreshBtn");
+  var belbinPdfBtn = document.getElementById("adminBelbinPdfBtn");
+
   var currentPassword = null; // хранится только в памяти вкладки, никуда не сохраняется
-  var currentRows = [];
+  var currentRows = []; // результаты Маслоу
+  var currentBelbinRows = []; // результаты Белбина
+  var currentTab = "maslow"; // какая вкладка сейчас открыта
+  var currentDetailKind = "maslow"; // какому тесту принадлежит открытая карточка "Подробнее"
 
   function formatDate(iso) {
     if (!iso) return "";
@@ -397,41 +468,172 @@
 
       var btn = tr.querySelector(".admin-detail-btn");
       btn.addEventListener("click", function () {
-        showDetailView(r);
+        showDetailView(r, "maslow");
       });
 
       var deleteBtn = tr.querySelector(".admin-delete-btn");
       deleteBtn.addEventListener("click", function () {
-        deleteRow(r.id, tr, deleteBtn);
+        deleteRow(r.id, tr, deleteBtn, "maslow");
       });
     });
   }
 
+  // ===== Тест Белбина — те же функции подсчёта/отрисовки, что и на самом
+  // сайте (renderBelbinReport, BELBIN_ROLE_ORDER и т.д. приходят из
+  // Cabinet/quiz-belbin.js, подключённого выше). =====
+
+  function belbinTotalsFromRow(r) {
+    var totals = {};
+    BELBIN_ROLE_ORDER.forEach(function (key) {
+      totals[key] = r[key] || 0;
+    });
+    return totals;
+  }
+
+  // Сырые ответы хранятся как answers[вопрос][вариант] = баллы (как их
+  // вводил сотрудник) — пересобираем в баллы по ролям на вопрос, как это
+  // делает сам тест при подсчёте.
+  function belbinByQuestionFromAnswers(rawAnswers) {
+    if (!rawAnswers || !Array.isArray(rawAnswers) || rawAnswers.length !== BELBIN_QUESTIONS.length) return null;
+    return BELBIN_QUESTIONS.map(function (q, qi) {
+      var perRole = {};
+      q.options.forEach(function (opt, oi) {
+        var points = (rawAnswers[qi] && rawAnswers[qi][oi]) || 0;
+        perRole[opt.role] = (perRole[opt.role] || 0) + points;
+      });
+      return perRole;
+    });
+  }
+
+  function belbinTopLabel(r) {
+    var top = belbinTopRoles(belbinTotalsFromRow(r));
+    return top.map(function (t) { return t.label; }).join(" / ");
+  }
+
+  // Карточка сотрудника по тесту Белбина — использует ту же функцию
+  // renderBelbinReport(), что и сам тест на сайте (таблица баллов по ролям
+  // и вопросам + ведущие роли, с текстом ИИ, если он был сформирован).
+  function buildBelbinDetail(r) {
+    var wrap = document.createElement("div");
+    wrap.className = "admin-detail";
+
+    var totals = belbinTotalsFromRow(r);
+    var byQuestion = belbinByQuestionFromAnswers(safeParse(r.answers));
+    var aiRoles = safeParse(r.ai_roles);
+    var aiData = aiRoles ? { intro: r.ai_intro || "", roles: aiRoles } : null;
+
+    if (!aiData) {
+      var note = document.createElement("p");
+      note.className = "admin-no-ai-note";
+      note.textContent = "Сотрудник не формировал ИИ-отчёт — ниже базовое описание ведущих ролей.";
+      wrap.appendChild(note);
+    }
+
+    var tableTitle = document.createElement("h4");
+    tableTitle.className = "cabinet__section-title";
+    tableTitle.textContent = "Баллы по ролям";
+    var tableWrap = document.createElement("div");
+    tableWrap.className = "cabinet__belbin-table-wrap";
+
+    var rolesTitle = document.createElement("h4");
+    rolesTitle.className = "cabinet__section-title";
+    rolesTitle.textContent = "Роли в команде";
+    var topWrap = document.createElement("div");
+
+    wrap.appendChild(tableTitle);
+    wrap.appendChild(tableWrap);
+    wrap.appendChild(rolesTitle);
+    wrap.appendChild(topWrap);
+
+    renderBelbinReport({ tableEl: tableWrap, topEl: topWrap }, totals, byQuestion, aiData);
+
+    return wrap;
+  }
+
+  function renderBelbinRows(rows) {
+    currentBelbinRows = rows;
+    belbinTableBodyEl.innerHTML = "";
+    if (!rows.length) {
+      belbinStatusEl.textContent = "Пока никто не прошёл тест.";
+      return;
+    }
+    belbinStatusEl.textContent = "Всего результатов: " + rows.length;
+    rows.forEach(function (r) {
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        '<td class="admin-name">' + escapeHtml(r.full_name) + "</td>" +
+        "<td>" + escapeHtml(r.department || "—") + "</td>" +
+        "<td>" + formatDate(r.submitted_at) + "</td>" +
+        "<td>" + escapeHtml(belbinTopLabel(r)) + "</td>" +
+        '<td class="admin-actions">' +
+        '<button type="button" class="btn btn--outline admin-detail-btn">Подробнее</button>' +
+        '<button type="button" class="btn btn--outline admin-delete-btn">Удалить</button>' +
+        "</td>";
+      belbinTableBodyEl.appendChild(tr);
+
+      var btn = tr.querySelector(".admin-detail-btn");
+      btn.addEventListener("click", function () {
+        showDetailView(r, "belbin");
+      });
+
+      var deleteBtn = tr.querySelector(".admin-delete-btn");
+      deleteBtn.addEventListener("click", function () {
+        deleteRow(r.id, tr, deleteBtn, "belbin");
+      });
+    });
+  }
+
+  // ===== Переключение вкладок / список ↔ карточка сотрудника =====
+
+  function hideListViews() {
+    listViewEl.style.display = "none";
+    belbinListEl.style.display = "none";
+  }
+
+  function showActiveTabList() {
+    hideListViews();
+    if (currentTab === "belbin") {
+      belbinListEl.style.display = "";
+    } else {
+      listViewEl.style.display = "";
+    }
+  }
+
+  function switchTab(tab) {
+    currentTab = tab;
+    tabMaslowBtn.classList.toggle("admin-tab--active", tab === "maslow");
+    tabBelbinBtn.classList.toggle("admin-tab--active", tab === "belbin");
+    detailViewEl.style.display = "none";
+    showActiveTabList();
+  }
+
   // Открыть результат конкретного сотрудника отдельной страницей (вместо
   // раскрытия внутри общей таблицы) — со своей кнопкой "Скачать PDF",
-  // которая печатает только этого сотрудника.
-  function showDetailView(r) {
+  // которая печатает только этого сотрудника. kind — "maslow" или "belbin".
+  function showDetailView(r, kind) {
+    currentDetailKind = kind || "maslow";
     detailHeadingEl.textContent = r.full_name + (r.department ? " — " + r.department : "");
     detailContentEl.innerHTML = "";
-    detailContentEl.appendChild(buildDetail(r));
-    listViewEl.style.display = "none";
+    detailContentEl.appendChild(currentDetailKind === "belbin" ? buildBelbinDetail(r) : buildDetail(r));
+    hideListViews();
     detailViewEl.style.display = "";
     window.scrollTo(0, 0);
   }
 
   function showListView() {
     detailViewEl.style.display = "none";
-    listViewEl.style.display = "";
+    showActiveTabList();
   }
 
-  async function deleteRow(id, tr, deleteBtn) {
+  async function deleteRow(id, tr, deleteBtn, kind) {
+    var isBelbin = kind === "belbin";
     if (!window.confirm("Удалить результат «" + tr.querySelector(".admin-name").textContent + "» без возможности восстановления?")) {
       return;
     }
     deleteBtn.disabled = true;
     deleteBtn.textContent = "Удаляем…";
     try {
-      var resp = await fetch(ADMIN_WORKER_URL + "/admin/delete", {
+      var resp = await fetch(ADMIN_WORKER_URL + (isBelbin ? "/admin/belbin/delete" : "/admin/delete"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ password: currentPassword, id: id }),
@@ -441,8 +643,13 @@
         throw new Error((data && data.error) || "HTTP " + resp.status);
       }
       tr.remove();
-      currentRows = currentRows.filter(function (r) { return r.id !== id; });
-      statusEl.textContent = "Всего результатов: " + currentRows.length;
+      if (isBelbin) {
+        currentBelbinRows = currentBelbinRows.filter(function (r) { return r.id !== id; });
+        belbinStatusEl.textContent = "Всего результатов: " + currentBelbinRows.length;
+      } else {
+        currentRows = currentRows.filter(function (r) { return r.id !== id; });
+        statusEl.textContent = "Всего результатов: " + currentRows.length;
+      }
     } catch (err) {
       deleteBtn.disabled = false;
       deleteBtn.textContent = "Удалить";
@@ -472,6 +679,9 @@
       gateEl.style.display = "none";
       contentEl.style.display = "";
       renderRows(data.rows || []);
+      // Пароль общий для обоих тестов — сразу подгружаем и Белбина, чтобы
+      // переключение вкладки не требовало повторного ввода пароля.
+      loadBelbinResults(password);
     } catch (err) {
       if (contentEl.style.display === "none" || contentEl.style.display === "") {
         // Ещё не залогинены — показываем ошибку на форме входа.
@@ -483,6 +693,26 @@
       } else {
         statusEl.textContent = message;
       }
+    }
+  }
+
+  async function loadBelbinResults(password) {
+    belbinStatusEl.textContent = "Загружаем…";
+    belbinTableBodyEl.innerHTML = "";
+    try {
+      var resp = await fetch(ADMIN_WORKER_URL + "/admin/belbin/list", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: password }),
+      });
+      var data = await resp.json().catch(function () { return null; });
+      if (!resp.ok || !data || !data.ok) {
+        throw new Error((data && data.error) || "Не удалось загрузить результаты Белбина.");
+      }
+      renderBelbinRows(data.rows || []);
+    } catch (err) {
+      belbinStatusEl.textContent =
+        "Не удалось загрузить результаты Белбина: " + (err && err.message ? err.message : "ошибка связи с сервером.");
     }
   }
 
@@ -498,6 +728,17 @@
     if (currentPassword) loadResults(currentPassword);
   });
 
+  belbinRefreshBtn.addEventListener("click", function () {
+    if (currentPassword) loadBelbinResults(currentPassword);
+  });
+
+  tabMaslowBtn.addEventListener("click", function () {
+    switchTab("maslow");
+  });
+  tabBelbinBtn.addEventListener("click", function () {
+    switchTab("belbin");
+  });
+
   // На общей странице PDF — это краткая сводная таблица, как она выглядит
   // на экране (без подробностей по каждому сотруднику).
   pdfBtn.addEventListener("click", function () {
@@ -505,10 +746,15 @@
     window.print();
   });
 
+  belbinPdfBtn.addEventListener("click", function () {
+    if (!currentBelbinRows.length) return;
+    window.print();
+  });
+
   backBtn.addEventListener("click", showListView);
 
   // На странице отдельного сотрудника PDF — это его полный разбор
-  // (график, расшифровка, рекомендации, ответы по вопросам).
+  // (график/таблица, расшифровка, рекомендации/роли, ответы по вопросам).
   detailPdfBtn.addEventListener("click", function () {
     window.print();
   });
