@@ -26,11 +26,11 @@
 const FIVES_AI_WORKER_URL = "https://gembalab-maslow-report.gembalab.workers.dev";
 
 const FIVES_SCALES = [
-  { key: "sort", label: "1С (сортировка)" },
-  { key: "order", label: "2С (соблюдение порядка)" },
-  { key: "clean", label: "3С (содержание в чистоте)" },
-  { key: "standardize", label: "4С (стандартизация)" },
-  { key: "sustain", label: "5С (совершенствование)" },
+  { key: "sort", label: "1С (сортировка)", short: "1С" },
+  { key: "order", label: "2С (соблюдение порядка)", short: "2С" },
+  { key: "clean", label: "3С (содержание в чистоте)", short: "3С" },
+  { key: "standardize", label: "4С (стандартизация)", short: "4С" },
+  { key: "sustain", label: "5С (совершенствование)", short: "5С" },
 ];
 
 const FIVES_SCALE_MAX = 5; // ровно 5 вопросов на каждую категорию
@@ -298,12 +298,14 @@ function fives5RadarSvg(totals) {
     const anchor = Math.abs(p.x - cx) < 8 ? "middle" : p.x > cx ? "start" : "end";
     return (
       '<text x="' + p.x.toFixed(1) + '" y="' + p.y.toFixed(1) +
-      '" font-size="11" font-weight="700" fill="#394155" text-anchor="' + anchor + '">' + s.label + "</text>"
+      '" font-size="13" font-weight="700" fill="#394155" text-anchor="' + anchor + '">' + s.short + "</text>"
     );
   }).join("");
 
+  const padX = 20;
+  const padY = 18;
   return (
-    '<svg viewBox="0 0 ' + W + " " + H + '" class="cabinet__disc-chart-svg" role="img" aria-label="Радар 5С">' +
+    '<svg viewBox="' + -padX + " " + -padY + " " + (W + 2 * padX) + " " + (H + 2 * padY) + '" class="cabinet__disc-chart-svg" role="img" aria-label="Радар 5С">' +
     gridPolys +
     axisLines +
     '<polygon points="' + valuePts + '" fill="rgba(233,21,43,0.18)" stroke="#e9152b" stroke-width="2" />' +
