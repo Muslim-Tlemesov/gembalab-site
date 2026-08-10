@@ -197,6 +197,7 @@
     #adminStatus,
     #adminBelbinStatus,
     #adminDiscStatus,
+    #adminSituationalStatus,
     #adminBackBtn {
       display: none !important;
     }
@@ -229,6 +230,7 @@
       <button type="button" class="admin-tab admin-tab--active" id="adminTabMaslow">Тест Маслоу</button>
       <button type="button" class="admin-tab" id="adminTabBelbin">Тест Белбина</button>
       <button type="button" class="admin-tab" id="adminTabDisc">Тест DISC</button>
+      <button type="button" class="admin-tab" id="adminTabSituational">Ситуативный тест</button>
     </div>
 
     <div id="adminListView">
@@ -312,6 +314,36 @@
       </div>
     </div>
 
+    <div id="adminSituationalListView" style="display:none;">
+      <div class="admin-toolbar">
+        <h1>Результаты сотрудников — Ситуативный тест</h1>
+        <div class="admin-toolbar-actions">
+          <button type="button" class="btn btn--outline" id="adminSituationalRefreshBtn">Обновить</button>
+          <button type="button" class="btn btn--outline" id="adminSituationalPdfBtn">Скачать PDF</button>
+        </div>
+      </div>
+      <p class="cabinet__placeholder" id="adminSituationalStatus"></p>
+
+      <div class="admin-table-wrap">
+        <table class="admin-table" id="adminSituationalTable">
+          <thead>
+            <tr>
+              <th>ФИО</th>
+              <th>Отдел / должность</th>
+              <th>Дата прохождения</th>
+              <th>Ответственность</th>
+              <th>Автономия</th>
+              <th>Воля</th>
+              <th>Дух инициативы</th>
+              <th>Отношения</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="adminSituationalTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <div id="adminDetailView" style="display:none;">
       <div class="admin-toolbar">
         <button type="button" class="btn btn--outline" id="adminBackBtn">← Назад к списку</button>
@@ -333,6 +365,7 @@
 <script src="Cabinet/quiz-maslow.js"></script>
 <script src="Cabinet/quiz-belbin.js"></script>
 <script src="Cabinet/quiz-disc.js"></script>
+<script src="Cabinet/quiz-situational.js"></script>
 <script>
 (function () {
   // Тот же адрес сервера, что и у самого теста.
@@ -369,10 +402,18 @@
   var discRefreshBtn = document.getElementById("adminDiscRefreshBtn");
   var discPdfBtn = document.getElementById("adminDiscPdfBtn");
 
+  var tabSituationalBtn = document.getElementById("adminTabSituational");
+  var situationalListEl = document.getElementById("adminSituationalListView");
+  var situationalStatusEl = document.getElementById("adminSituationalStatus");
+  var situationalTableBodyEl = document.getElementById("adminSituationalTableBody");
+  var situationalRefreshBtn = document.getElementById("adminSituationalRefreshBtn");
+  var situationalPdfBtn = document.getElementById("adminSituationalPdfBtn");
+
   var currentPassword = null; // хранится только в памяти вкладки, никуда не сохраняется
   var currentRows = []; // результаты Маслоу
   var currentBelbinRows = []; // результаты Белбина
   var currentDiscRows = []; // результаты DISC
+  var currentSituationalRows = []; // результаты ситуативного теста
   var currentTab = "maslow"; // какая вкладка сейчас открыта
   var currentDetailKind = "maslow"; // какому тесту принадлежит открытая карточка "Подробнее"
 
@@ -720,12 +761,139 @@
     });
   }
 
+  // ===== Ситуативный тест — те же функции подсчёта/отрисовки, что и на
+  // самом сайте (renderSituationalReport, SITUATIONAL_SCALES и т.д.
+  // приходят из Cabinet/quiz-situational.js, подключённого выше). =====
+
+  function situationalTotalsFromRow(r) {
+    var totals = {};
+    SITUATIONAL_SCALES.forEach(function (s) {
+      totals[s.key] = r[s.key] || 0;
+    });
+    return totals;
+  }
+
+  function situationalScoreCell(score, key) {
+    var max = SITUATIONAL_SCALE_MAX[key] || 1;
+    var tier = situationalTier(score, max);
+    var cls = tier === "high" ? ' class="admin-tier--high"' : "";
+    return "<td" + cls + ">" + score + "/" + max + "</td>";
+  }
+
+  function buildSituationalAnswersList(answers) {
+    var wrap = document.createElement("div");
+    if (!answers || !Array.isArray(answers) || answers.length !== SITUATIONAL_QUESTIONS.length) {
+      wrap.innerHTML = '<p class="cabinet__placeholder">Ответы по вопросам не сохранены для этой записи (тест был пройден до появления этой функции).</p>';
+      return wrap;
+    }
+    var ol = document.createElement("ol");
+    ol.className = "admin-answers";
+    SITUATIONAL_QUESTIONS.forEach(function (q, i) {
+      var chosen = answers[i];
+      var label = chosen != null && q.options[chosen] != null ? q.options[chosen] : "—";
+      var li = document.createElement("li");
+      li.textContent = q.text + " — " + label;
+      ol.appendChild(li);
+    });
+    wrap.appendChild(ol);
+    return wrap;
+  }
+
+  // Карточка сотрудника по ситуативному тесту — использует ту же функцию
+  // renderSituationalReport(), что и сам тест на сайте (график, расшифровка,
+  // рекомендации), плюс список ответов по каждому вопросу.
+  function buildSituationalDetail(r) {
+    var wrap = document.createElement("div");
+    wrap.className = "admin-detail";
+
+    var totals = situationalTotalsFromRow(r);
+    var aiBreakdown = safeParse(r.ai_breakdown);
+    var aiData = aiBreakdown ? { breakdown: aiBreakdown, recommendations_intro: r.ai_recommendations || "" } : null;
+
+    if (!aiData) {
+      var note = document.createElement("p");
+      note.className = "admin-no-ai-note";
+      note.textContent = "Сотрудник не формировал ИИ-отчёт — ниже стандартный (шаблонный) разбор по баллам.";
+      wrap.appendChild(note);
+    }
+
+    var chartEl = document.createElement("div");
+    chartEl.className = "cabinet__result-chart";
+    var scoresTitle = document.createElement("h4");
+    scoresTitle.className = "cabinet__section-title";
+    scoresTitle.textContent = "Расшифровка результатов";
+    var scoresEl = document.createElement("ul");
+    scoresEl.className = "cabinet__result-scores";
+    var breakdownEl = document.createElement("div");
+    breakdownEl.className = "cabinet__result-breakdown";
+    var recommendTitle = document.createElement("h4");
+    recommendTitle.className = "cabinet__section-title";
+    recommendTitle.textContent = "Рекомендации";
+    var recommendEl = document.createElement("div");
+    recommendEl.className = "cabinet__result-recommend";
+
+    wrap.appendChild(chartEl);
+    wrap.appendChild(scoresTitle);
+    wrap.appendChild(scoresEl);
+    wrap.appendChild(breakdownEl);
+    wrap.appendChild(recommendTitle);
+    wrap.appendChild(recommendEl);
+
+    renderSituationalReport({ chartEl: chartEl, scoresEl: scoresEl, breakdownEl: breakdownEl, recommendEl: recommendEl }, totals, aiData);
+
+    var answersTitle = document.createElement("h4");
+    answersTitle.className = "cabinet__section-title";
+    answersTitle.textContent = "Ответы по вопросам";
+    wrap.appendChild(answersTitle);
+    wrap.appendChild(buildSituationalAnswersList(safeParse(r.answers)));
+
+    return wrap;
+  }
+
+  function renderSituationalRows(rows) {
+    currentSituationalRows = rows;
+    situationalTableBodyEl.innerHTML = "";
+    if (!rows.length) {
+      situationalStatusEl.textContent = "Пока никто не прошёл тест.";
+      return;
+    }
+    situationalStatusEl.textContent = "Всего результатов: " + rows.length;
+    rows.forEach(function (r) {
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        '<td class="admin-name">' + escapeHtml(r.full_name) + "</td>" +
+        "<td>" + escapeHtml(r.department || "—") + "</td>" +
+        "<td>" + formatDate(r.submitted_at) + "</td>" +
+        situationalScoreCell(r.responsibility, "responsibility") +
+        situationalScoreCell(r.autonomy, "autonomy") +
+        situationalScoreCell(r.will, "will") +
+        situationalScoreCell(r.initiative, "initiative") +
+        situationalScoreCell(r.relationships, "relationships") +
+        '<td class="admin-actions">' +
+        '<button type="button" class="btn btn--outline admin-detail-btn">Подробнее</button>' +
+        '<button type="button" class="btn btn--outline admin-delete-btn">Удалить</button>' +
+        "</td>";
+      situationalTableBodyEl.appendChild(tr);
+
+      var btn = tr.querySelector(".admin-detail-btn");
+      btn.addEventListener("click", function () {
+        showDetailView(r, "situational");
+      });
+
+      var deleteBtn = tr.querySelector(".admin-delete-btn");
+      deleteBtn.addEventListener("click", function () {
+        deleteRow(r.id, tr, deleteBtn, "situational");
+      });
+    });
+  }
+
   // ===== Переключение вкладок / список ↔ карточка сотрудника =====
 
   function hideListViews() {
     listViewEl.style.display = "none";
     belbinListEl.style.display = "none";
     discListEl.style.display = "none";
+    situationalListEl.style.display = "none";
   }
 
   function showActiveTabList() {
@@ -734,6 +902,8 @@
       belbinListEl.style.display = "";
     } else if (currentTab === "disc") {
       discListEl.style.display = "";
+    } else if (currentTab === "situational") {
+      situationalListEl.style.display = "";
     } else {
       listViewEl.style.display = "";
     }
@@ -744,13 +914,15 @@
     tabMaslowBtn.classList.toggle("admin-tab--active", tab === "maslow");
     tabBelbinBtn.classList.toggle("admin-tab--active", tab === "belbin");
     tabDiscBtn.classList.toggle("admin-tab--active", tab === "disc");
+    tabSituationalBtn.classList.toggle("admin-tab--active", tab === "situational");
     detailViewEl.style.display = "none";
     showActiveTabList();
   }
 
   // Открыть результат конкретного сотрудника отдельной страницей (вместо
   // раскрытия внутри общей таблицы) — со своей кнопкой "Скачать PDF",
-  // которая печатает только этого сотрудника. kind — "maslow", "belbin" или "disc".
+  // которая печатает только этого сотрудника. kind — "maslow", "belbin",
+  // "disc" или "situational".
   function showDetailView(r, kind) {
     currentDetailKind = kind || "maslow";
     detailHeadingEl.textContent = r.full_name + (r.department ? " — " + r.department : "");
@@ -758,6 +930,7 @@
     var built;
     if (currentDetailKind === "belbin") built = buildBelbinDetail(r);
     else if (currentDetailKind === "disc") built = buildDiscDetail(r);
+    else if (currentDetailKind === "situational") built = buildSituationalDetail(r);
     else built = buildDetail(r);
     detailContentEl.appendChild(built);
     hideListViews();
@@ -771,7 +944,11 @@
   }
 
   async function deleteRow(id, tr, deleteBtn, kind) {
-    var endpoint = kind === "belbin" ? "/admin/belbin/delete" : kind === "disc" ? "/admin/disc/delete" : "/admin/delete";
+    var endpoint =
+      kind === "belbin" ? "/admin/belbin/delete" :
+      kind === "disc" ? "/admin/disc/delete" :
+      kind === "situational" ? "/admin/situational/delete" :
+      "/admin/delete";
     if (!window.confirm("Удалить результат «" + tr.querySelector(".admin-name").textContent + "» без возможности восстановления?")) {
       return;
     }
@@ -794,6 +971,9 @@
       } else if (kind === "disc") {
         currentDiscRows = currentDiscRows.filter(function (r) { return r.id !== id; });
         discStatusEl.textContent = "Всего результатов: " + currentDiscRows.length;
+      } else if (kind === "situational") {
+        currentSituationalRows = currentSituationalRows.filter(function (r) { return r.id !== id; });
+        situationalStatusEl.textContent = "Всего результатов: " + currentSituationalRows.length;
       } else {
         currentRows = currentRows.filter(function (r) { return r.id !== id; });
         statusEl.textContent = "Всего результатов: " + currentRows.length;
@@ -827,10 +1007,11 @@
       gateEl.style.display = "none";
       contentEl.style.display = "";
       renderRows(data.rows || []);
-      // Пароль общий для всех тестов — сразу подгружаем Белбина и DISC,
+      // Пароль общий для всех тестов — сразу подгружаем остальные тесты,
       // чтобы переключение вкладки не требовало повторного ввода пароля.
       loadBelbinResults(password);
       loadDiscResults(password);
+      loadSituationalResults(password);
     } catch (err) {
       if (contentEl.style.display === "none" || contentEl.style.display === "") {
         // Ещё не залогинены — показываем ошибку на форме входа.
@@ -885,6 +1066,26 @@
     }
   }
 
+  async function loadSituationalResults(password) {
+    situationalStatusEl.textContent = "Загружаем…";
+    situationalTableBodyEl.innerHTML = "";
+    try {
+      var resp = await fetch(ADMIN_WORKER_URL + "/admin/situational/list", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: password }),
+      });
+      var data = await resp.json().catch(function () { return null; });
+      if (!resp.ok || !data || !data.ok) {
+        throw new Error((data && data.error) || "Не удалось загрузить результаты ситуативного теста.");
+      }
+      renderSituationalRows(data.rows || []);
+    } catch (err) {
+      situationalStatusEl.textContent =
+        "Не удалось загрузить результаты ситуативного теста: " + (err && err.message ? err.message : "ошибка связи с сервером.");
+    }
+  }
+
   loginForm.addEventListener("submit", function (event) {
     event.preventDefault();
     loginErrorEl.style.display = "none";
@@ -905,6 +1106,10 @@
     if (currentPassword) loadDiscResults(currentPassword);
   });
 
+  situationalRefreshBtn.addEventListener("click", function () {
+    if (currentPassword) loadSituationalResults(currentPassword);
+  });
+
   tabMaslowBtn.addEventListener("click", function () {
     switchTab("maslow");
   });
@@ -913,6 +1118,9 @@
   });
   tabDiscBtn.addEventListener("click", function () {
     switchTab("disc");
+  });
+  tabSituationalBtn.addEventListener("click", function () {
+    switchTab("situational");
   });
 
   // На общей странице PDF — это краткая сводная таблица, как она выглядит
@@ -929,6 +1137,11 @@
 
   discPdfBtn.addEventListener("click", function () {
     if (!currentDiscRows.length) return;
+    window.print();
+  });
+
+  situationalPdfBtn.addEventListener("click", function () {
+    if (!currentSituationalRows.length) return;
     window.print();
   });
 

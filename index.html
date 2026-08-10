@@ -128,11 +128,12 @@
                   открывается по платной подписке или промо-коду.
                 </p>
                 <div class="cabinet__tests-grid">
-                  <div class="cabinet__test-card">
+                  <div class="cabinet__test-card cabinet__test-card--clickable" data-quiz="situational" role="button" tabindex="0">
                     <div class="cabinet__test-head">
                       <div class="cabinet__test-title"><span class="cabinet__test-num">1.</span>Ситуативный тест</div>
                     </div>
                     <p class="cabinet__test-desc">Покажет, какие качества чаще проявляются в реальных ситуациях</p>
+                    <span class="cabinet__test-cta">Пройти тест →</span>
                   </div>
                   <div class="cabinet__test-card">
                     <div class="cabinet__test-head">
@@ -496,6 +497,71 @@
                     <button type="button" class="btn btn--outline" id="quizDiscRestart">Пройти заново</button>
                   </div>
                 </div>
+
+                <div class="cabinet__quiz" id="quizSituational">
+                  <button type="button" class="cabinet__quiz-back" id="quizSituationalBack">← Список тестов</button>
+                  <h3 class="cabinet__quiz-title">Ситуативный тест</h3>
+
+                  <form class="cabinet__quiz-start" id="quizSituationalStart">
+                    <p class="cabinet__placeholder">
+                      Перед началом укажите, пожалуйста, как к вам обращаться — это нужно, чтобы
+                      было понятно, кому принадлежит результат. Тест состоит из 62 коротких ситуаций:
+                      в каждой нужно выбрать один из трёх вариантов поведения — тот, что ближе всего к тому,
+                      как поступили бы именно вы.
+                    </p>
+                    <div class="cabinet__form-grid">
+                      <label class="cabinet__field">
+                        <span class="cabinet__field-label">ФИО</span>
+                        <input type="text" class="cabinet__input" id="quizSituationalName" placeholder="Иванов Иван" autocomplete="name" />
+                      </label>
+                      <label class="cabinet__field">
+                        <span class="cabinet__field-label">Отдел / должность</span>
+                        <input type="text" class="cabinet__input" id="quizSituationalDept" placeholder="Производство, оператор" />
+                      </label>
+                    </div>
+                    <p class="cabinet__result-ai-status cabinet__result-ai-status--error" id="quizSituationalStartError" style="display:none;"></p>
+                    <button type="submit" class="btn btn--primary cabinet__quiz-start-btn" id="quizSituationalStartBtn">Начать тест</button>
+                  </form>
+
+                  <div class="cabinet__quiz-progress" id="quizSituationalProgress"></div>
+
+                  <div class="cabinet__quiz-body" id="quizSituationalBody">
+                    <p class="cabinet__quiz-question-text" id="quizSituationalQuestionText"></p>
+                    <div class="cabinet__quiz-options" id="quizSituationalOptions"></div>
+                  </div>
+
+                  <div class="cabinet__quiz-nav">
+                    <button type="button" class="btn btn--outline" id="quizSituationalPrev">Назад</button>
+                    <button type="button" class="btn btn--primary" id="quizSituationalNext">Далее</button>
+                  </div>
+
+                  <div class="cabinet__quiz-done" id="quizSituationalDone">
+                    <h3 class="cabinet__quiz-title">Результаты ситуативного теста</h3>
+
+                    <div class="cabinet__result-ai">
+                      <button type="button" class="btn btn--primary" id="quizSituationalAiBtn">Сформировать отчёт</button>
+                      <span class="cabinet__result-ai-status" id="quizSituationalAiStatus"></span>
+                    </div>
+                    <p class="cabinet__result-submit-status" id="quizSituationalSubmitStatus"></p>
+
+                    <div class="cabinet__result-chart" id="quizSituationalChart"></div>
+
+                    <h4 class="cabinet__section-title">Расшифровка результатов</h4>
+                    <ul class="cabinet__result-scores" id="quizSituationalScores"></ul>
+
+                    <div class="cabinet__result-breakdown" id="quizSituationalBreakdown"></div>
+
+                    <h4 class="cabinet__section-title">Рекомендации</h4>
+                    <div class="cabinet__result-recommend" id="quizSituationalRecommend"></div>
+
+                    <p class="cabinet__placeholder cabinet__result-note">
+                      Результат сохранён в этом браузере и виден в разделе «Результаты» слева. Скачивание
+                      PDF-отчёта и история прохождений с разных устройств появятся вместе с полноценной
+                      регистрацией в личном кабинете.
+                    </p>
+                    <button type="button" class="btn btn--outline" id="quizSituationalRestart">Пройти заново</button>
+                  </div>
+                </div>
               </div>
               <div class="cabinet__panel" id="panel-results">
                 <h2 class="cabinet__panel-title">Результаты</h2>
@@ -563,6 +629,30 @@
                   <h4 class="cabinet__section-title">Баллы по типам</h4>
                   <div class="cabinet__disc-table-wrap" id="discResultsTable"></div>
                   <div id="discResultsText"></div>
+                  <p class="cabinet__placeholder cabinet__result-note">
+                    Результат виден только в этом браузере на этом устройстве. Если очистить историю
+                    браузера или открыть сайт с другого устройства — результат нужно будет получить заново.
+                  </p>
+                </div>
+
+                <p class="cabinet__placeholder" id="situationalResultsEmpty">
+                  Здесь появится результат ситуативного теста — сохраняется прямо в этом браузере, без
+                  регистрации. Пройдите «Ситуативный тест» в разделе «Список тестов и анкет».
+                </p>
+                <div id="situationalResultsFilled" style="display:none;">
+                  <div class="cabinet__result-header">
+                    <h3 class="cabinet__result-header-title">Ситуативный тест</h3>
+                    <div class="cabinet__result-header-actions">
+                      <span class="cabinet__placeholder cabinet__result-saved-at" id="situationalResultsDate"></span>
+                      <button type="button" class="btn btn--outline" id="situationalResultsClear">Удалить результат</button>
+                    </div>
+                  </div>
+                  <div class="cabinet__result-chart" id="situationalResultsChart"></div>
+                  <h4 class="cabinet__section-title">Расшифровка результатов</h4>
+                  <ul class="cabinet__result-scores" id="situationalResultsScores"></ul>
+                  <div class="cabinet__result-breakdown" id="situationalResultsBreakdown"></div>
+                  <h4 class="cabinet__section-title">Рекомендации</h4>
+                  <div class="cabinet__result-recommend" id="situationalResultsRecommend"></div>
                   <p class="cabinet__placeholder cabinet__result-note">
                     Результат виден только в этом браузере на этом устройстве. Если очистить историю
                     браузера или открыть сайт с другого устройства — результат нужно будет получить заново.
@@ -665,6 +755,7 @@
     <script src="Cabinet/quiz-maslow.js"></script>
     <script src="Cabinet/quiz-belbin.js"></script>
     <script src="Cabinet/quiz-disc.js"></script>
+    <script src="Cabinet/quiz-situational.js"></script>
     <script src="Cabinet/materials.js"></script>
   </body>
 </html>
