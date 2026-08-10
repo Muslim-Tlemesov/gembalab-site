@@ -198,6 +198,7 @@
     #adminBelbinStatus,
     #adminDiscStatus,
     #adminSituationalStatus,
+    #admin5sStatus,
     #adminBackBtn {
       display: none !important;
     }
@@ -231,6 +232,7 @@
       <button type="button" class="admin-tab" id="adminTabBelbin">Тест Белбина</button>
       <button type="button" class="admin-tab" id="adminTabDisc">Тест DISC</button>
       <button type="button" class="admin-tab" id="adminTabSituational">Ситуативный тест</button>
+      <button type="button" class="admin-tab" id="adminTab5s">Диагностика по 5С</button>
     </div>
 
     <div id="adminListView">
@@ -344,6 +346,37 @@
       </div>
     </div>
 
+    <div id="admin5sListView" style="display:none;">
+      <div class="admin-toolbar">
+        <h1>Результаты сотрудников — Диагностика по 5С</h1>
+        <div class="admin-toolbar-actions">
+          <button type="button" class="btn btn--outline" id="admin5sRefreshBtn">Обновить</button>
+          <button type="button" class="btn btn--outline" id="admin5sPdfBtn">Скачать PDF</button>
+        </div>
+      </div>
+      <p class="cabinet__placeholder" id="admin5sStatus"></p>
+
+      <div class="admin-table-wrap">
+        <table class="admin-table" id="admin5sTable">
+          <thead>
+            <tr>
+              <th>ФИО</th>
+              <th>Помещение</th>
+              <th>Дата прохождения</th>
+              <th>1С</th>
+              <th>2С</th>
+              <th>3С</th>
+              <th>4С</th>
+              <th>5С</th>
+              <th>Средняя</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="admin5sTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <div id="adminDetailView" style="display:none;">
       <div class="admin-toolbar">
         <button type="button" class="btn btn--outline" id="adminBackBtn">← Назад к списку</button>
@@ -366,6 +399,7 @@
 <script src="Cabinet/quiz-belbin.js"></script>
 <script src="Cabinet/quiz-disc.js"></script>
 <script src="Cabinet/quiz-situational.js"></script>
+<script src="Cabinet/quiz-5s.js"></script>
 <script>
 (function () {
   // Тот же адрес сервера, что и у самого теста.
@@ -409,11 +443,19 @@
   var situationalRefreshBtn = document.getElementById("adminSituationalRefreshBtn");
   var situationalPdfBtn = document.getElementById("adminSituationalPdfBtn");
 
+  var tab5sBtn = document.getElementById("adminTab5s");
+  var list5sEl = document.getElementById("admin5sListView");
+  var status5sEl = document.getElementById("admin5sStatus");
+  var tableBody5sEl = document.getElementById("admin5sTableBody");
+  var refresh5sBtn = document.getElementById("admin5sRefreshBtn");
+  var pdf5sBtn = document.getElementById("admin5sPdfBtn");
+
   var currentPassword = null; // хранится только в памяти вкладки, никуда не сохраняется
   var currentRows = []; // результаты Маслоу
   var currentBelbinRows = []; // результаты Белбина
   var currentDiscRows = []; // результаты DISC
   var currentSituationalRows = []; // результаты ситуативного теста
+  var current5sRows = []; // результаты диагностики по 5С
   var currentTab = "maslow"; // какая вкладка сейчас открыта
   var currentDetailKind = "maslow"; // какому тесту принадлежит открытая карточка "Подробнее"
 
@@ -887,6 +929,147 @@
     });
   }
 
+  // ===== Диагностика по 5С — те же функции подсчёта/отрисовки, что и на
+  // самом сайте (render5sReport, FIVES_SCALES и т.д. приходят из
+  // Cabinet/quiz-5s.js, подключённого выше). =====
+
+  function fives5TotalsFromRow(r) {
+    return {
+      sort: r.sort || 0,
+      order: r.order_score || 0,
+      clean: r.clean || 0,
+      standardize: r.standardize || 0,
+      sustain: r.sustain || 0,
+    };
+  }
+
+  function fives5ScoreCell(score) {
+    var tier = fivesTier(score || 0);
+    var cls = tier === "attention" ? ' class="admin-tier--high"' : "";
+    return "<td" + cls + ">" + (score || 0) + "/5</td>";
+  }
+
+  function buildFivesAnswersList(answers) {
+    var wrap = document.createElement("div");
+    if (!answers || !Array.isArray(answers) || answers.length !== FIVES_QUESTIONS.length) {
+      wrap.innerHTML = '<p class="cabinet__placeholder">Ответы по вопросам не сохранены для этой записи (тест был пройден до появления этой функции).</p>';
+      return wrap;
+    }
+    var ol = document.createElement("ol");
+    ol.className = "admin-answers";
+    FIVES_QUESTIONS.forEach(function (q, i) {
+      var chosen = answers[i];
+      var label = chosen === "yes" ? "Да" : chosen === "no" ? "Нет" : "—";
+      var li = document.createElement("li");
+      li.textContent = q.text + " — " + label;
+      ol.appendChild(li);
+    });
+    wrap.appendChild(ol);
+    return wrap;
+  }
+
+  // Карточка сотрудника по диагностике 5С — использует ту же функцию
+  // render5sReport(), что и сам тест на сайте (радар, баллы по категориям,
+  // рекомендации), плюс список ответов по каждому вопросу.
+  function build5sDetail(r) {
+    var wrap = document.createElement("div");
+    wrap.className = "admin-detail";
+
+    var totals = fives5TotalsFromRow(r);
+    var answers = safeParse(r.answers) || [];
+    var aiBreakdown = safeParse(r.ai_breakdown);
+    var aiData = aiBreakdown ? { breakdown: aiBreakdown, action_plan: r.ai_action_plan || "" } : null;
+
+    if (!aiData) {
+      var note = document.createElement("p");
+      note.className = "admin-no-ai-note";
+      note.textContent = "Сотрудник не формировал ИИ-отчёт — ниже стандартный список рекомендаций по пунктам.";
+      wrap.appendChild(note);
+    }
+
+    var spaceEl = document.createElement("p");
+    spaceEl.className = "cabinet__placeholder";
+    var averageEl = document.createElement("p");
+    averageEl.className = "cabinet__placeholder";
+    averageEl.style.fontWeight = "600";
+    var chartEl = document.createElement("div");
+    chartEl.className = "cabinet__disc-chart";
+    var scoresTitle = document.createElement("h4");
+    scoresTitle.className = "cabinet__section-title";
+    scoresTitle.textContent = "Баллы по категориям";
+    var scoresEl = document.createElement("ul");
+    scoresEl.className = "cabinet__result-scores";
+    var recommendTitle = document.createElement("h4");
+    recommendTitle.className = "cabinet__section-title";
+    recommendTitle.textContent = "Рекомендации";
+    var recommendEl = document.createElement("div");
+    recommendEl.className = "cabinet__result-recommend";
+
+    wrap.appendChild(spaceEl);
+    wrap.appendChild(averageEl);
+    wrap.appendChild(chartEl);
+    wrap.appendChild(scoresTitle);
+    wrap.appendChild(scoresEl);
+    wrap.appendChild(recommendTitle);
+    wrap.appendChild(recommendEl);
+
+    render5sReport(
+      { spaceEl: spaceEl, averageEl: averageEl, chartEl: chartEl, scoresEl: scoresEl, recommendEl: recommendEl },
+      r.space_name,
+      totals,
+      answers,
+      aiData
+    );
+
+    var answersTitle = document.createElement("h4");
+    answersTitle.className = "cabinet__section-title";
+    answersTitle.textContent = "Ответы по вопросам";
+    wrap.appendChild(answersTitle);
+    wrap.appendChild(buildFivesAnswersList(answers));
+
+    return wrap;
+  }
+
+  function render5sRows(rows) {
+    current5sRows = rows;
+    tableBody5sEl.innerHTML = "";
+    if (!rows.length) {
+      status5sEl.textContent = "Пока никто не прошёл тест.";
+      return;
+    }
+    status5sEl.textContent = "Всего результатов: " + rows.length;
+    rows.forEach(function (r) {
+      var totals = fives5TotalsFromRow(r);
+      var average = (totals.sort + totals.order + totals.clean + totals.standardize + totals.sustain) / 5;
+      var tr = document.createElement("tr");
+      tr.innerHTML =
+        '<td class="admin-name">' + escapeHtml(r.full_name) + "</td>" +
+        "<td>" + escapeHtml(r.space_name || "—") + "</td>" +
+        "<td>" + formatDate(r.submitted_at) + "</td>" +
+        fives5ScoreCell(totals.sort) +
+        fives5ScoreCell(totals.order) +
+        fives5ScoreCell(totals.clean) +
+        fives5ScoreCell(totals.standardize) +
+        fives5ScoreCell(totals.sustain) +
+        "<td>" + fivesFormatAverage(average) + "</td>" +
+        '<td class="admin-actions">' +
+        '<button type="button" class="btn btn--outline admin-detail-btn">Подробнее</button>' +
+        '<button type="button" class="btn btn--outline admin-delete-btn">Удалить</button>' +
+        "</td>";
+      tableBody5sEl.appendChild(tr);
+
+      var btn = tr.querySelector(".admin-detail-btn");
+      btn.addEventListener("click", function () {
+        showDetailView(r, "5s");
+      });
+
+      var deleteBtn = tr.querySelector(".admin-delete-btn");
+      deleteBtn.addEventListener("click", function () {
+        deleteRow(r.id, tr, deleteBtn, "5s");
+      });
+    });
+  }
+
   // ===== Переключение вкладок / список ↔ карточка сотрудника =====
 
   function hideListViews() {
@@ -894,6 +1077,7 @@
     belbinListEl.style.display = "none";
     discListEl.style.display = "none";
     situationalListEl.style.display = "none";
+    list5sEl.style.display = "none";
   }
 
   function showActiveTabList() {
@@ -904,6 +1088,8 @@
       discListEl.style.display = "";
     } else if (currentTab === "situational") {
       situationalListEl.style.display = "";
+    } else if (currentTab === "5s") {
+      list5sEl.style.display = "";
     } else {
       listViewEl.style.display = "";
     }
@@ -915,6 +1101,7 @@
     tabBelbinBtn.classList.toggle("admin-tab--active", tab === "belbin");
     tabDiscBtn.classList.toggle("admin-tab--active", tab === "disc");
     tabSituationalBtn.classList.toggle("admin-tab--active", tab === "situational");
+    tab5sBtn.classList.toggle("admin-tab--active", tab === "5s");
     detailViewEl.style.display = "none";
     showActiveTabList();
   }
@@ -922,7 +1109,7 @@
   // Открыть результат конкретного сотрудника отдельной страницей (вместо
   // раскрытия внутри общей таблицы) — со своей кнопкой "Скачать PDF",
   // которая печатает только этого сотрудника. kind — "maslow", "belbin",
-  // "disc" или "situational".
+  // "disc", "situational" или "5s".
   function showDetailView(r, kind) {
     currentDetailKind = kind || "maslow";
     detailHeadingEl.textContent = r.full_name + (r.department ? " — " + r.department : "");
@@ -931,6 +1118,7 @@
     if (currentDetailKind === "belbin") built = buildBelbinDetail(r);
     else if (currentDetailKind === "disc") built = buildDiscDetail(r);
     else if (currentDetailKind === "situational") built = buildSituationalDetail(r);
+    else if (currentDetailKind === "5s") built = build5sDetail(r);
     else built = buildDetail(r);
     detailContentEl.appendChild(built);
     hideListViews();
@@ -948,6 +1136,7 @@
       kind === "belbin" ? "/admin/belbin/delete" :
       kind === "disc" ? "/admin/disc/delete" :
       kind === "situational" ? "/admin/situational/delete" :
+      kind === "5s" ? "/admin/5s/delete" :
       "/admin/delete";
     if (!window.confirm("Удалить результат «" + tr.querySelector(".admin-name").textContent + "» без возможности восстановления?")) {
       return;
@@ -974,6 +1163,9 @@
       } else if (kind === "situational") {
         currentSituationalRows = currentSituationalRows.filter(function (r) { return r.id !== id; });
         situationalStatusEl.textContent = "Всего результатов: " + currentSituationalRows.length;
+      } else if (kind === "5s") {
+        current5sRows = current5sRows.filter(function (r) { return r.id !== id; });
+        status5sEl.textContent = "Всего результатов: " + current5sRows.length;
       } else {
         currentRows = currentRows.filter(function (r) { return r.id !== id; });
         statusEl.textContent = "Всего результатов: " + currentRows.length;
@@ -1012,6 +1204,7 @@
       loadBelbinResults(password);
       loadDiscResults(password);
       loadSituationalResults(password);
+      load5sResults(password);
     } catch (err) {
       if (contentEl.style.display === "none" || contentEl.style.display === "") {
         // Ещё не залогинены — показываем ошибку на форме входа.
@@ -1086,6 +1279,26 @@
     }
   }
 
+  async function load5sResults(password) {
+    status5sEl.textContent = "Загружаем…";
+    tableBody5sEl.innerHTML = "";
+    try {
+      var resp = await fetch(ADMIN_WORKER_URL + "/admin/5s/list", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: password }),
+      });
+      var data = await resp.json().catch(function () { return null; });
+      if (!resp.ok || !data || !data.ok) {
+        throw new Error((data && data.error) || "Не удалось загрузить результаты диагностики по 5С.");
+      }
+      render5sRows(data.rows || []);
+    } catch (err) {
+      status5sEl.textContent =
+        "Не удалось загрузить результаты диагностики по 5С: " + (err && err.message ? err.message : "ошибка связи с сервером.");
+    }
+  }
+
   loginForm.addEventListener("submit", function (event) {
     event.preventDefault();
     loginErrorEl.style.display = "none";
@@ -1110,6 +1323,10 @@
     if (currentPassword) loadSituationalResults(currentPassword);
   });
 
+  refresh5sBtn.addEventListener("click", function () {
+    if (currentPassword) load5sResults(currentPassword);
+  });
+
   tabMaslowBtn.addEventListener("click", function () {
     switchTab("maslow");
   });
@@ -1121,6 +1338,9 @@
   });
   tabSituationalBtn.addEventListener("click", function () {
     switchTab("situational");
+  });
+  tab5sBtn.addEventListener("click", function () {
+    switchTab("5s");
   });
 
   // На общей странице PDF — это краткая сводная таблица, как она выглядит
@@ -1142,6 +1362,11 @@
 
   situationalPdfBtn.addEventListener("click", function () {
     if (!currentSituationalRows.length) return;
+    window.print();
+  });
+
+  pdf5sBtn.addEventListener("click", function () {
+    if (!current5sRows.length) return;
     window.print();
   });
 

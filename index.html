@@ -178,11 +178,12 @@
                     </div>
                     <p class="cabinet__test-desc">Формирует детальный кайдзен-план по повышению вовлечённости команды</p>
                   </div>
-                  <div class="cabinet__test-card">
+                  <div class="cabinet__test-card cabinet__test-card--clickable" data-quiz="5s" role="button" tabindex="0">
                     <div class="cabinet__test-head">
                       <div class="cabinet__test-title"><span class="cabinet__test-num">9.</span>Диагностика по 5С</div>
                     </div>
                     <p class="cabinet__test-desc">Измерит, насколько эффективно организовано пространство, и выдаст план действий</p>
+                    <span class="cabinet__test-cta">Пройти тест →</span>
                   </div>
                   <div class="cabinet__test-card">
                     <div class="cabinet__test-head">
@@ -562,6 +563,75 @@
                     <button type="button" class="btn btn--outline" id="quizSituationalRestart">Пройти заново</button>
                   </div>
                 </div>
+
+                <div class="cabinet__quiz" id="quiz5s">
+                  <button type="button" class="cabinet__quiz-back" id="quiz5sBack">← Список тестов</button>
+                  <h3 class="cabinet__quiz-title">Диагностика по 5С</h3>
+
+                  <form class="cabinet__quiz-start" id="quiz5sStart">
+                    <p class="cabinet__placeholder">
+                      Перед началом укажите, пожалуйста, как к вам обращаться и название помещения/зоны,
+                      которую будете оценивать. Тест состоит из 25 вопросов с ответом Да/Нет — по 5 вопросов
+                      на каждую из 5 категорий 5С.
+                    </p>
+                    <div class="cabinet__form-grid">
+                      <label class="cabinet__field">
+                        <span class="cabinet__field-label">ФИО</span>
+                        <input type="text" class="cabinet__input" id="quiz5sName" placeholder="Иванов Иван" autocomplete="name" />
+                      </label>
+                      <label class="cabinet__field">
+                        <span class="cabinet__field-label">Отдел / должность</span>
+                        <input type="text" class="cabinet__input" id="quiz5sDept" placeholder="Производство, оператор" />
+                      </label>
+                    </div>
+                    <label class="cabinet__field">
+                      <span class="cabinet__field-label">Название помещения, которое будете оценивать</span>
+                      <input type="text" class="cabinet__input" id="quiz5sSpaceInput" placeholder="Рабочая зона, склад, цех №2…" />
+                    </label>
+                    <p class="cabinet__result-ai-status cabinet__result-ai-status--error" id="quiz5sStartError" style="display:none;"></p>
+                    <button type="submit" class="btn btn--primary cabinet__quiz-start-btn" id="quiz5sStartBtn">Начать тест</button>
+                  </form>
+
+                  <div class="cabinet__quiz-progress" id="quiz5sProgress"></div>
+
+                  <div class="cabinet__quiz-body" id="quiz5sBody">
+                    <p class="cabinet__quiz-question-text" id="quiz5sQuestionText"></p>
+                    <p class="cabinet__placeholder" id="quiz5sQuestionNote" style="margin-bottom:12px; display:none;"></p>
+                    <div class="cabinet__quiz-options" id="quiz5sOptions"></div>
+                  </div>
+
+                  <div class="cabinet__quiz-nav">
+                    <button type="button" class="btn btn--outline" id="quiz5sPrev">Назад</button>
+                    <button type="button" class="btn btn--primary" id="quiz5sNext">Далее</button>
+                  </div>
+
+                  <div class="cabinet__quiz-done" id="quiz5sDone">
+                    <h3 class="cabinet__quiz-title">Результаты диагностики по 5С</h3>
+                    <p class="cabinet__placeholder" id="quiz5sSpace"></p>
+                    <p class="cabinet__placeholder" id="quiz5sAverage" style="font-weight:600;"></p>
+
+                    <div class="cabinet__result-ai">
+                      <button type="button" class="btn btn--primary" id="quiz5sAiBtn">Сформировать отчёт</button>
+                      <span class="cabinet__result-ai-status" id="quiz5sAiStatus"></span>
+                    </div>
+                    <p class="cabinet__result-submit-status" id="quiz5sSubmitStatus"></p>
+
+                    <div class="cabinet__disc-chart" id="quiz5sChart"></div>
+
+                    <h4 class="cabinet__section-title">Баллы по категориям</h4>
+                    <ul class="cabinet__result-scores" id="quiz5sScores"></ul>
+
+                    <h4 class="cabinet__section-title">Рекомендации</h4>
+                    <div class="cabinet__result-recommend" id="quiz5sRecommend"></div>
+
+                    <p class="cabinet__placeholder cabinet__result-note">
+                      Результат сохранён в этом браузере и виден в разделе «Результаты» слева. Скачивание
+                      PDF-отчёта и история прохождений с разных устройств появятся вместе с полноценной
+                      регистрацией в личном кабинете.
+                    </p>
+                    <button type="button" class="btn btn--outline" id="quiz5sRestart">Пройти заново</button>
+                  </div>
+                </div>
               </div>
               <div class="cabinet__panel" id="panel-results">
                 <h2 class="cabinet__panel-title">Результаты</h2>
@@ -653,6 +723,31 @@
                   <div class="cabinet__result-breakdown" id="situationalResultsBreakdown"></div>
                   <h4 class="cabinet__section-title">Рекомендации</h4>
                   <div class="cabinet__result-recommend" id="situationalResultsRecommend"></div>
+                  <p class="cabinet__placeholder cabinet__result-note">
+                    Результат виден только в этом браузере на этом устройстве. Если очистить историю
+                    браузера или открыть сайт с другого устройства — результат нужно будет получить заново.
+                  </p>
+                </div>
+
+                <p class="cabinet__placeholder" id="fivesResultsEmpty">
+                  Здесь появится результат диагностики по 5С — сохраняется прямо в этом браузере, без
+                  регистрации. Пройдите «Диагностика по 5С» в разделе «Список тестов и анкет».
+                </p>
+                <div id="fivesResultsFilled" style="display:none;">
+                  <div class="cabinet__result-header">
+                    <h3 class="cabinet__result-header-title">Диагностика по 5С</h3>
+                    <div class="cabinet__result-header-actions">
+                      <span class="cabinet__placeholder cabinet__result-saved-at" id="fivesResultsDate"></span>
+                      <button type="button" class="btn btn--outline" id="fivesResultsClear">Удалить результат</button>
+                    </div>
+                  </div>
+                  <p class="cabinet__placeholder" id="fivesResultsSpace"></p>
+                  <p class="cabinet__placeholder" id="fivesResultsAverage" style="font-weight:600;"></p>
+                  <div class="cabinet__disc-chart" id="fivesResultsChart"></div>
+                  <h4 class="cabinet__section-title">Баллы по категориям</h4>
+                  <ul class="cabinet__result-scores" id="fivesResultsScores"></ul>
+                  <h4 class="cabinet__section-title">Рекомендации</h4>
+                  <div class="cabinet__result-recommend" id="fivesResultsRecommend"></div>
                   <p class="cabinet__placeholder cabinet__result-note">
                     Результат виден только в этом браузере на этом устройстве. Если очистить историю
                     браузера или открыть сайт с другого устройства — результат нужно будет получить заново.
@@ -756,6 +851,7 @@
     <script src="Cabinet/quiz-belbin.js"></script>
     <script src="Cabinet/quiz-disc.js"></script>
     <script src="Cabinet/quiz-situational.js"></script>
+    <script src="Cabinet/quiz-5s.js"></script>
     <script src="Cabinet/materials.js"></script>
   </body>
 </html>
