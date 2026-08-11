@@ -756,7 +756,28 @@
               </div>
               <div class="cabinet__panel" id="panel-materials">
                 <h2 class="cabinet__panel-title">Учебные материалы</h2>
-                <div class="cabinet__material-card">
+
+                <div class="cabinet__tests-list" id="materialsListView">
+                  <div class="cabinet__tests-grid">
+                    <div class="cabinet__test-card cabinet__test-card--clickable" data-material="1" role="button" tabindex="0">
+                      <div class="cabinet__test-head">
+                        <div class="cabinet__test-title"><span class="cabinet__test-num">1.</span>Первый урок</div>
+                      </div>
+                      <p class="cabinet__test-desc">Основы кайдзен — конспект урока в PDF и видеоразбор к нему.</p>
+                      <span class="cabinet__test-cta">Открыть урок →</span>
+                    </div>
+                    <div class="cabinet__test-card cabinet__test-card--clickable" data-material="2" role="button" tabindex="0">
+                      <div class="cabinet__test-head">
+                        <div class="cabinet__test-title"><span class="cabinet__test-num">2.</span>Второй урок</div>
+                      </div>
+                      <p class="cabinet__test-desc">КПСЦ (карта потока создания ценности) — конспект урока в PDF и видеоразбор к нему.</p>
+                      <span class="cabinet__test-cta">Открыть урок →</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="cabinet__material-card cabinet__material-detail" id="materialDetail1" style="display:none;">
+                  <button type="button" class="cabinet__quiz-back" data-material-back>← Список уроков</button>
                   <h3 class="cabinet__material-title">Первый урок</h3>
                   <p class="cabinet__material-desc">
                     Конспект урока в PDF и видеоразбор к нему.
@@ -779,7 +800,9 @@
                     <p class="cabinet__placeholder">Видео появится здесь позже.</p>
                   </div>
                 </div>
-                <div class="cabinet__material-card">
+
+                <div class="cabinet__material-card cabinet__material-detail" id="materialDetail2" style="display:none;">
+                  <button type="button" class="cabinet__quiz-back" data-material-back>← Список уроков</button>
                   <h3 class="cabinet__material-title">Второй урок</h3>
                   <p class="cabinet__material-desc">
                     КПСЦ (карта потока создания ценности) — конспект урока в PDF и видеоразбор к нему.
